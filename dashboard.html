@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BagelBoy Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6decf;
+            padding: 2rem;
+        }
+        h1 {
+            text-align: center;
+            color: #d3272e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 1rem;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            background-color: #d3272e;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        async function sendAction(email, action) {
+            const password = prompt("Enter dashboard password:");
+            const res = await fetch('/dashboard-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, action, password })
+            });
+            const result = await res.json();
+            alert(result.message);
+            location.reload();
+        }
+
+        window.onload = async () => {
+            const res = await fetch('/dashboard-data');
+            const data = await res.json();
+            const tbody = document.getElementById('dashboard-body');
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.name}</td>
+                    <td>${row.email}</td>
+                    <td>${row.status}</td>
+                    <td>
+                        <button onclick="sendAction('${row.email}', 'interview')">Kennismaking mail</button>
+                        <button onclick="sendAction('${row.email}', 'reject')">Niet aangenomen mail</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>BAGELBOY Dashboard</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>E-mail</th>
+                <th>Status</th>
+                <th>Actie</th>
+            </tr>
+        </thead>
+        <tbody id="dashboard-body"></tbody>
+    </table>
+</body>
+</html>

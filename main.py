@@ -1,16 +1,15 @@
-from fastapi import FastAPI, Form
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime
 import os
 import smtplib
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="."), name="static")
 
-# Google Sheets setup
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
@@ -21,69 +20,71 @@ gc = gspread.authorize(credentials)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
-# E-mailfunctie
-def send_confirmation_email(to_email, first_name, last_name, phone, position, hours, motivation):
-    smtp_email = os.environ.get("SMTP_EMAIL")
-    smtp_password = os.environ.get("SMTP_PASSWORD")
-    cc_email = smtp_email  # jezelf in CC
+SMTP_EMAIL = os.environ.get("SMTP_EMAIL")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+DASHBOARD_PASSWORD = "BagelBoy123!"
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Bevestiging sollicitatie BagelBoy"
-    msg["From"] = smtp_email
+@app.get("/dashboard", response_class=HTMLResponse)
+async def get_dashboard():
+    with open("dashboard.html", "r") as f:
+        return HTMLResponse(content=f.read())
+
+@app.get("/dashboard-data")
+async def dashboard_data():
+    records = worksheet.get_all_records()
+    return [{"name": f"{r['Voornaam']} {r['Achternaam']}", "email": r['E-mail'], "status": r['Status']} for r in records]
+
+@app.post("/dashboard-action")
+async def dashboard_action(request: Request):
+    body = await request.json()
+    email = body.get("email")
+    action = body.get("action")
+    password = body.get("password")
+
+    if password != DASHBOARD_PASSWORD:
+        return JSONResponse(content={"message": "Ongeldig wachtwoord."}, status_code=403)
+
+    records = worksheet.get_all_records()
+    for i, row in enumerate(records):
+        if row["E-mail"] == email:
+            row_index = i + 2
+            name = f"{row['Voornaam']} {row['Achternaam']}"
+            if action == "interview":
+                send_mail(email, name, "invite")
+                worksheet.update_cell(row_index, 9, "Kennismaking gemaild")
+            elif action == "reject":
+                send_mail(email, name, "reject")
+                worksheet.update_cell(row_index, 9, "Niet aangenomen")
+            return {"message": f"Mail '{action}' verstuurd naar {email}"}
+
+    return {"message": "Sollicitant niet gevonden."}
+
+def send_mail(to_email, name, type):
+    subject = ""
+    body = ""
+
+    if type == "invite":
+        subject = "Kennismaking BagelBoy"
+        body = f"""Hi {name},
+
+Based on your motivation and resume we would love to invite you for a short meeting (10-15 min) at our Weteringschans location to see if we want to proceed and schedule a trial shift!
+
+See you soon,
+BagelBoy"""
+    elif type == "reject":
+        subject = "BagelBoy Application Update"
+        body = f"""Hi {name},
+
+Unfortunately we have decided not to proceed with your application. Please let us know if you have questions.
+
+All the best in your job search,
+BagelBoy"""
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = SMTP_EMAIL
     msg["To"] = to_email
-    msg["Cc"] = cc_email
 
-    # Voor sollicitant
-    text = f"Hi {first_name},\n\nBedankt voor je sollicitatie bij BagelBoy!"
-    html = f"""
-    <html>
-      <body>
-        <p>Hi {first_name},<br><br>
-           Bedankt voor je sollicitatie bij <strong>BagelBoy</strong>!<br>
-           We nemen zo snel mogelijk contact met je op.<br><br>
-           Met vriendelijke groet,<br>
-           Het BagelBoy Team
-        </p>
-        <hr>
-        <p><strong>Sollicitatiegegevens (alleen zichtbaar voor jou):</strong><br>
-           Naam: {first_name} {last_name}<br>
-           E-mail: {to_email}<br>
-           Telefoon: {phone}<br>
-           Gewenste functie: {position}<br>
-           Uren per week: {hours}<br>
-           Motivatie: {motivation}
-        </p>
-      </body>
-    </html>
-    """
-
-    msg.attach(MIMEText(text, "plain"))
-    msg.attach(MIMEText(html, "html"))
-
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(smtp_email, smtp_password)
-            server.sendmail(smtp_email, [to_email, cc_email], msg.as_string())
-    except Exception as e:
-        print("Fout bij verzenden e-mail:", e)
-
-# Submit endpoint
-@app.post("/submit")
-async def submit_form(
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    position: str = Form(...),
-    hours: int = Form(...),
-    motivation: str = Form(...)
-):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    worksheet.append_row([
-        timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
-    ])
-
-    send_confirmation_email(email, first_name, last_name, phone, position, hours, motivation)
-
-    return JSONResponse(content={"message": "Formulier succesvol verzonden."})
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.sendmail(SMTP_EMAIL, to_email, msg.as_string())

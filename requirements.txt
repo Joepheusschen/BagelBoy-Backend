@@ -1,5 +1,5 @@
 fastapi
+uvicorn
 gspread
 google-auth
-uvicorn
 python-multipart
