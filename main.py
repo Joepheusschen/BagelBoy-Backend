@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Form, Request
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
@@ -11,24 +11,27 @@ from email.mime.text import MIMEText
 
 app = FastAPI()
 
-# CORS configuratie
+# CORS instellingen
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Eventueel aanpassen naar jouw frontend domein
+    allow_origins=["*"],  # Pas aan naar je frontend domein voor veiligheid
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Google Sheets setup
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+]
 SERVICE_ACCOUNT_FILE = 'service_account.json'
 credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 gc = gspread.authorize(credentials)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
-# Mail functie
+# Emailfunctie
 def send_confirmation_email(to_email, first_name, include_admin=False, full_data=None):
     smtp_email = os.environ.get("SMTP_EMAIL")
     smtp_password = os.environ.get("SMTP_PASSWORD")
@@ -51,7 +54,7 @@ def send_confirmation_email(to_email, first_name, include_admin=False, full_data
     """
 
     if include_admin and full_data:
-        admin_html = f"""
+        html += f"""
         <hr>
         <p><strong>Gegevens sollicitant:</strong><br>
         Naam: {full_data['first_name']} {full_data['last_name']}<br>
@@ -62,21 +65,23 @@ def send_confirmation_email(to_email, first_name, include_admin=False, full_data
         Motivatie: {full_data['motivation']}<br>
         </p>
         """
-        html += admin_html
 
     html += "</body></html>"
-
     msg.attach(MIMEText(text, "plain"))
     msg.attach(MIMEText(html, "html"))
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(smtp_email, smtp_password)
-            server.sendmail(smtp_email, [to_email, smtp_email] if include_admin else to_email, msg.as_string())
+            server.sendmail(
+                smtp_email,
+                [to_email, smtp_email] if include_admin else to_email,
+                msg.as_string()
+            )
     except Exception as e:
         print("Fout bij verzenden e-mail:", e)
 
-# Formulier submitten
+# Formulierverwerking
 @app.post("/submit")
 async def submit_form(
     first_name: str = Form(...),
@@ -88,7 +93,6 @@ async def submit_form(
     motivation: str = Form(...)
 ):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
     worksheet.append_row([
         timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
     ])
@@ -105,7 +109,7 @@ async def submit_form(
 
     return JSONResponse(content={"message": "Formulier succesvol verzonden."})
 
-# Endpoint om gegevens op te halen
+# Data ophalen voor dashboard
 @app.get("/data")
 def get_data():
     records = worksheet.get_all_records()
@@ -113,3 +117,8 @@ def get_data():
         if "Status" not in row or not row["Status"]:
             row["Status"] = "Nieuw"
     return JSONResponse(content=records)
+
+# Dashboard tonen
+@app.get("/", response_class=FileResponse)
+def read_dashboard():
+    return FileResponse("dashboard.html")
