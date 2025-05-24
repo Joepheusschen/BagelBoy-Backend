@@ -1,6 +1,8 @@
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, Form, Request, Depends, HTTPException
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from starlette.status import HTTP_401_UNAUTHORIZED
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
@@ -10,17 +12,18 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 app = FastAPI()
+security = HTTPBasic()
 
-# CORS instellingen
+# CORS voor lokaal testen of frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Pas aan naar je frontend domein voor veiligheid
+    allow_origins=["*"],  # Zet hier je domein in productie
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Google Sheets setup
+# Sheets authenticatie
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
@@ -31,94 +34,62 @@ gc = gspread.authorize(credentials)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
-# Emailfunctie
-def send_confirmation_email(to_email, first_name, include_admin=False, full_data=None):
+# Basic auth
+def check_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_user = os.environ.get("DASHBOARD_USER", "admin")
+    correct_pass = os.environ.get("DASHBOARD_PASS", "BagelBoy123!")
+    if credentials.username != correct_user or credentials.password != correct_pass:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+# Endpoint: serve dashboard html
+@app.get("/", response_class=HTMLResponse)
+async def serve_dashboard():
+    return FileResponse("dashboard/dashboard.html")
+
+# Endpoint: haal data op uit Google Sheet
+@app.get("/data")
+async def get_data(credentials: HTTPBasicCredentials = Depends(check_credentials)):
+    rows = worksheet.get_all_records()
+    return rows
+
+# Endpoint: verstuur mail
+@app.post("/send-mail")
+async def send_custom_mail(
+    recipient_email: str = Form(...),
+    recipient_name: str = Form(...),
+    subject: str = Form(...),
+    message: str = Form(...),
+    credentials: HTTPBasicCredentials = Depends(check_credentials),
+):
     smtp_email = os.environ.get("SMTP_EMAIL")
     smtp_password = os.environ.get("SMTP_PASSWORD")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Bevestiging sollicitatie BagelBoy"
+    msg["Subject"] = subject
     msg["From"] = smtp_email
-    msg["To"] = to_email
+    msg["To"] = recipient_email
 
-    text = f"Hi {first_name},\n\nBedankt voor je sollicitatie bij BagelBoy!"
+    text = f"Hi {recipient_name},\n\n{message}"
     html = f"""
     <html>
       <body>
-        <p>Hi {first_name},<br><br>
-           Bedankt voor je sollicitatie bij <strong>BagelBoy</strong>!<br>
-           We nemen zo snel mogelijk contact met je op.<br><br>
-           Met vriendelijke groet,<br>
-           Het BagelBoy Team
-        </p>
+        <p>Hi {recipient_name},<br><br>{message.replace('\n', '<br>')}</p>
+      </body>
+    </html>
     """
 
-    if include_admin and full_data:
-        html += f"""
-        <hr>
-        <p><strong>Gegevens sollicitant:</strong><br>
-        Naam: {full_data['first_name']} {full_data['last_name']}<br>
-        Email: {full_data['email']}<br>
-        Telefoon: {full_data['phone']}<br>
-        Functie: {full_data['position']}<br>
-        Uren: {full_data['hours']}<br>
-        Motivatie: {full_data['motivation']}<br>
-        </p>
-        """
-
-    html += "</body></html>"
     msg.attach(MIMEText(text, "plain"))
     msg.attach(MIMEText(html, "html"))
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(smtp_email, smtp_password)
-            server.sendmail(
-                smtp_email,
-                [to_email, smtp_email] if include_admin else to_email,
-                msg.as_string()
-            )
+            server.sendmail(smtp_email, recipient_email, msg.as_string())
     except Exception as e:
-        print("Fout bij verzenden e-mail:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Formulierverwerking
-@app.post("/submit")
-async def submit_form(
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    position: str = Form(...),
-    hours: int = Form(...),
-    motivation: str = Form(...)
-):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    worksheet.append_row([
-        timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
-    ])
-
-    send_confirmation_email(email, first_name, include_admin=True, full_data={
-        "first_name": first_name,
-        "last_name": last_name,
-        "email": email,
-        "phone": phone,
-        "position": position,
-        "hours": hours,
-        "motivation": motivation
-    })
-
-    return JSONResponse(content={"message": "Formulier succesvol verzonden."})
-
-# Data ophalen voor dashboard
-@app.get("/data")
-def get_data():
-    records = worksheet.get_all_records()
-    for row in records:
-        if "Status" not in row or not row["Status"]:
-            row["Status"] = "Nieuw"
-    return JSONResponse(content=records)
-
-# Dashboard tonen
-@app.get("/", response_class=FileResponse)
-def read_dashboard():
-    return FileResponse("dashboard.html")
+    return JSONResponse(content={"message": "E-mail verzonden naar sollicitant."})
