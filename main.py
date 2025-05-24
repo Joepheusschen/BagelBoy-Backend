@@ -21,8 +21,8 @@ gc = gspread.authorize(credentials)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
-# Email functie
-def send_confirmation_email(to_email, first_name):
+# E-mailfunctie
+def send_confirmation_email(to_email, first_name, last_name, phone, position, hours, motivation):
     smtp_email = os.environ.get("SMTP_EMAIL")
     smtp_password = os.environ.get("SMTP_PASSWORD")
     cc_email = smtp_email  # jezelf in CC
@@ -33,6 +33,7 @@ def send_confirmation_email(to_email, first_name):
     msg["To"] = to_email
     msg["Cc"] = cc_email
 
+    # Voor sollicitant
     text = f"Hi {first_name},\n\nBedankt voor je sollicitatie bij BagelBoy!"
     html = f"""
     <html>
@@ -42,6 +43,15 @@ def send_confirmation_email(to_email, first_name):
            We nemen zo snel mogelijk contact met je op.<br><br>
            Met vriendelijke groet,<br>
            Het BagelBoy Team
+        </p>
+        <hr>
+        <p><strong>Sollicitatiegegevens (alleen zichtbaar voor jou):</strong><br>
+           Naam: {first_name} {last_name}<br>
+           E-mail: {to_email}<br>
+           Telefoon: {phone}<br>
+           Gewenste functie: {position}<br>
+           Uren per week: {hours}<br>
+           Motivatie: {motivation}
         </p>
       </body>
     </html>
@@ -74,6 +84,6 @@ async def submit_form(
         timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
     ])
 
-    send_confirmation_email(email, first_name)
+    send_confirmation_email(email, first_name, last_name, phone, position, hours, motivation)
 
     return JSONResponse(content={"message": "Formulier succesvol verzonden."})
