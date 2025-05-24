@@ -1,5 +1,4 @@
-
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form
 from fastapi.responses import JSONResponse
 import gspread
 from google.oauth2.service_account import Credentials
@@ -23,17 +22,17 @@ gc = gspread.authorize(credentials)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
-@app.post("/submit")
-async def submit_form(request: Request):
-    data = await request.json()
 
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
-    email = data.get("email")
-    phone = data.get("phone")
-    position = data.get("position")
-    hours = data.get("hours")
-    motivation = data.get("motivation")
+@app.post("/submit")
+async def submit_form(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    position: str = Form(...),
+    hours: int = Form(...),
+    motivation: str = Form("")
+):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     worksheet.append_row([
