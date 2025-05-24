@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
@@ -11,8 +11,14 @@ from email.mime.text import MIMEText
 
 app = FastAPI()
 
-# Mount de dashboard map
-app.mount("/dashboard", StaticFiles(directory="dashboard", html=True), name="dashboard")
+# CORS configuratie
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Eventueel aanpassen naar jouw frontend domein
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Google Sheets setup
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -22,24 +28,55 @@ gc = gspread.authorize(credentials)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
-# E-mailfunctie
-def send_email(to_email, subject, html_body, text_body):
+# Mail functie
+def send_confirmation_email(to_email, first_name, include_admin=False, full_data=None):
     smtp_email = os.environ.get("SMTP_EMAIL")
     smtp_password = os.environ.get("SMTP_PASSWORD")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
+    msg["Subject"] = "Bevestiging sollicitatie BagelBoy"
     msg["From"] = smtp_email
     msg["To"] = to_email
 
-    msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
+    text = f"Hi {first_name},\n\nBedankt voor je sollicitatie bij BagelBoy!"
+    html = f"""
+    <html>
+      <body>
+        <p>Hi {first_name},<br><br>
+           Bedankt voor je sollicitatie bij <strong>BagelBoy</strong>!<br>
+           We nemen zo snel mogelijk contact met je op.<br><br>
+           Met vriendelijke groet,<br>
+           Het BagelBoy Team
+        </p>
+    """
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(smtp_email, smtp_password)
-        server.sendmail(smtp_email, to_email, msg.as_string())
+    if include_admin and full_data:
+        admin_html = f"""
+        <hr>
+        <p><strong>Gegevens sollicitant:</strong><br>
+        Naam: {full_data['first_name']} {full_data['last_name']}<br>
+        Email: {full_data['email']}<br>
+        Telefoon: {full_data['phone']}<br>
+        Functie: {full_data['position']}<br>
+        Uren: {full_data['hours']}<br>
+        Motivatie: {full_data['motivation']}<br>
+        </p>
+        """
+        html += admin_html
 
-# Sollicitatie formulier endpoint
+    html += "</body></html>"
+
+    msg.attach(MIMEText(text, "plain"))
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(smtp_email, smtp_password)
+            server.sendmail(smtp_email, [to_email, smtp_email] if include_admin else to_email, msg.as_string())
+    except Exception as e:
+        print("Fout bij verzenden e-mail:", e)
+
+# Formulier submitten
 @app.post("/submit")
 async def submit_form(
     first_name: str = Form(...),
@@ -51,80 +88,28 @@ async def submit_form(
     motivation: str = Form(...)
 ):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     worksheet.append_row([
         timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
     ])
 
-    # Mail naar sollicitant
-    subject = "Bevestiging sollicitatie BagelBoy"
-    text = f"Hi {first_name},\n\nBedankt voor je sollicitatie bij BagelBoy!"
-    html = f"""
-    <html><body>
-        <p>Hi {first_name},<br><br>
-        Bedankt voor je sollicitatie bij <strong>BagelBoy</strong>!<br>
-        We nemen zo snel mogelijk contact met je op.<br><br>
-        Met vriendelijke groet,<br>Het BagelBoy Team</p>
-    </body></html>
-    """
-    send_email(email, subject, html, text)
-
-    # Mail naar jezelf
-    subject_admin = f"Nieuwe sollicitatie van {first_name} {last_name}"
-    body_admin = f"""
-    <html><body>
-        <p>Er is een nieuwe sollicitatie binnengekomen:</p>
-        <ul>
-            <li>Naam: {first_name} {last_name}</li>
-            <li>Email: {email}</li>
-            <li>Telefoon: {phone}</li>
-            <li>Functie: {position}</li>
-            <li>Uren: {hours}</li>
-            <li>Motivatie: {motivation}</li>
-        </ul>
-    </body></html>
-    """
-    send_email(os.environ.get("SMTP_EMAIL"), subject_admin, body_admin, body_admin)
+    send_confirmation_email(email, first_name, include_admin=True, full_data={
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "phone": phone,
+        "position": position,
+        "hours": hours,
+        "motivation": motivation
+    })
 
     return JSONResponse(content={"message": "Formulier succesvol verzonden."})
 
-# Endpoint voor uitnodiging of afwijzing versturen
-@app.post("/mail")
-async def send_decision(request: Request):
-    form = await request.form()
-    password = form.get("password")
-    email = form.get("email")
-    first_name = form.get("first_name")
-    decision = form.get("decision")  # invite of reject
-
-    if password != "BagelBoy123!":
-        return JSONResponse(status_code=401, content={"message": "Unauthorized"})
-
-    if decision == "invite":
-        subject = "Kennismaking BagelBoy"
-        html = f"""
-        <html><body>
-            <p>Hi {first_name},<br><br>
-            Leuk dat je hebt gesolliciteerd!<br>
-            Plan hier een kennismaking in: <a href="https://calendly.com/">Klik hier om in te plannen</a>.<br><br>
-            Tot snel!<br>
-            Het BagelBoy Team</p>
-        </body></html>
-        """
-        send_email(email, subject, html, html)
-        return JSONResponse(content={"message": "Uitnodiging verstuurd"})
-
-    elif decision == "reject":
-        subject = "Reactie op je sollicitatie bij BagelBoy"
-        html = f"""
-        <html><body>
-            <p>Hi {first_name},<br><br>
-            Helaas hebben we besloten niet verder te gaan met je sollicitatie.<br>
-            Mocht je vragen hebben, laat het ons weten.<br><br>
-            Veel succes met je zoektocht!<br>
-            Het BagelBoy Team</p>
-        </body></html>
-        """
-        send_email(email, subject, html, html)
-        return JSONResponse(content={"message": "Afwijzing verstuurd"})
-
-    return JSONResponse(status_code=400, content={"message": "Ongeldige actie"})
+# Endpoint om gegevens op te halen
+@app.get("/data")
+def get_data():
+    records = worksheet.get_all_records()
+    for row in records:
+        if "Status" not in row or not row["Status"]:
+            row["Status"] = "Nieuw"
+    return JSONResponse(content=records)
