@@ -22,7 +22,7 @@ SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
 # Email functie
-def send_confirmation_email(to_email, first_name):
+def send_confirmation_email(to_email, first_name, cc_email):
     smtp_email = os.environ.get("SMTP_EMAIL")
     smtp_password = os.environ.get("SMTP_PASSWORD")
 
@@ -30,6 +30,7 @@ def send_confirmation_email(to_email, first_name):
     msg["Subject"] = "Bevestiging sollicitatie BagelBoy"
     msg["From"] = smtp_email
     msg["To"] = to_email
+    msg["Cc"] = cc_email
 
     text = f"Hi {first_name},\n\nBedankt voor je sollicitatie bij BagelBoy!"
     html = f"""
@@ -51,7 +52,7 @@ def send_confirmation_email(to_email, first_name):
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(smtp_email, smtp_password)
-            server.sendmail(smtp_email, to_email, msg.as_string())
+            server.sendmail(smtp_email, [to_email, cc_email], msg.as_string())
     except Exception as e:
         print("Fout bij verzenden e-mail:", e)
 
@@ -72,6 +73,6 @@ async def submit_form(
         timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
     ])
 
-    send_confirmation_email(email, first_name)
+    send_confirmation_email(email, first_name, cc_email="joepheusschen@gmail.com")
 
     return JSONResponse(content={"message": "Formulier succesvol verzonden."})
