@@ -22,9 +22,10 @@ SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 worksheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
 # Email functie
-def send_confirmation_email(to_email, first_name, cc_email):
+def send_confirmation_email(to_email, first_name):
     smtp_email = os.environ.get("SMTP_EMAIL")
     smtp_password = os.environ.get("SMTP_PASSWORD")
+    cc_email = smtp_email  # jezelf in CC
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = "Bevestiging sollicitatie BagelBoy"
@@ -73,6 +74,6 @@ async def submit_form(
         timestamp, first_name, last_name, email, phone, position, hours, motivation, "Nieuw"
     ])
 
-    send_confirmation_email(email, first_name, cc_email="joepheusschen@gmail.com")
+    send_confirmation_email(email, first_name)
 
     return JSONResponse(content={"message": "Formulier succesvol verzonden."})
