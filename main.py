@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, session
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify
 import os
 import json
 import smtplib
@@ -63,15 +63,21 @@ def dashboard():
         return redirect(url_for('login'))
 
     rows = sheet.get_all_records()
-    grouped = {"New": [], "Other": []}
+    grouped = {"New": [], "1st meeting": [], "Trial": [], "Hired": [], "Not hired": [], "Other": []}
     for i, row in enumerate(rows):
         row_with_id = dict(row)
         row_with_id["row_id"] = i + 2
-        if row.get("Status") == "New":
-            grouped["New"].append(row_with_id)
+        status = row.get("Status")
+        if status in grouped:
+            grouped[status].append(row_with_id)
         else:
             grouped["Other"].append(row_with_id)
     return render_template("dashboard.html", grouped=grouped)
+
+@app.route('/update-status/<int:row_id>/<new_status>')
+def update_status(row_id, new_status):
+    sheet.update_cell(row_id, 9, new_status)
+    return redirect(url_for('dashboard'))
 
 @app.route('/invite/<int:row_id>')
 def invite(row_id):
@@ -95,13 +101,29 @@ def reject(row_id):
     email = row[2]
     first_name = row[0]
 
-    sheet.update_cell(row_id, 9, "Rejected")
+    sheet.update_cell(row_id, 9, "Not hired")
 
-    subject = "Application update – BagelBoy"
-    body = f"""Hi {first_name},\n\nUnfortunately we have decided not to proceed with your application.\nWe wish you all the luck in your future endeavours!\n\nBagelBoy HR"""
+    subject = "BagelBoy application update"
+    body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
     send_email(subject, body, email)
 
     return redirect(url_for('dashboard'))
+
+@app.route('/reject-custom/<int:row_id>', methods=['POST'])
+def reject_custom(row_id):
+    data = request.get_json()
+    message = data.get('message')
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+
+    sheet.update_cell(row_id, 9, "Not hired")
+
+    subject = "BagelBoy application update"
+    body = f"Hi {first_name},\n\n{message}\n\nBagelBoy HR"
+    send_email(subject, body, email)
+
+    return jsonify({'status': 'ok'})
 
 def send_email(subject, body, to):
     msg = MIMEText(body)
