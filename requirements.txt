@@ -7,3 +7,4 @@ jinja2
 itsdangerous
 oauth2client
 flask
+gunicorn
