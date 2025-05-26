@@ -9,3 +9,4 @@ oauth2client
 flask
 gunicorn
 google-api-python-client
+python-dotenv
