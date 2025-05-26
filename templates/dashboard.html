@@ -39,7 +39,7 @@
       font-weight: bold;
       font-size: 0.95rem;
     }
-    .invite {
+    .next {
       background-color: #d3272e;
       color: white;
     }
@@ -48,6 +48,26 @@
       color: white;
     }
   </style>
+  <script>
+    function confirmReject(rowId) {
+      const choice = confirm("Send standard rejection mail?\nClick OK to send, or Cancel to adjust the message.");
+      if (choice) {
+        window.location.href = '/reject/' + rowId;
+      } else {
+        const customText = prompt("Edit the rejection message below:", 
+`Unfortunately we have to let you know we have decided not to proceed with your application.
+We thank you for your time and effort and wish you all of luck in your future endeavors.
+Would you wish to have more information on this decision please contact Joep on 0681142820.`);
+        if (customText) {
+          fetch('/reject-custom/' + rowId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: customText })
+          }).then(() => window.location.reload());
+        }
+      }
+    }
+  </script>
 </head>
 <body>
   <h1>BagelBoy Applications</h1>
@@ -66,9 +86,18 @@
           📆 Weekend: {{ row['Weekend'] }}<br>
           💬 Motivation:<br>
           <em>{{ row['Motivation'] }}</em><br>
-          {% if status == "New" %}
-            <a href="/invite/{{ row['row_id'] }}"><button class="btn invite">Plan first meeting</button></a>
-            <a href="/reject/{{ row['row_id'] }}"><button class="btn reject">Don't proceed</button></a>
+
+          {% set row_id = row['row_id'] %}
+          {% if status == 'New' %}
+            <a href="/update-status/{{ row_id }}/1st meeting"><button class="btn next">To 1st meeting</button></a>
+          {% elif status == '1st meeting' %}
+            <a href="/update-status/{{ row_id }}/Trial"><button class="btn next">To Trial</button></a>
+          {% elif status == 'Trial' %}
+            <a href="/update-status/{{ row_id }}/Hired"><button class="btn next">To Hired</button></a>
+          {% endif %}
+          
+          {% if status != 'Not hired' and status != 'Hired' %}
+            <button class="btn reject" onclick="confirmReject({{ row_id }})">Don't proceed</button>
           {% endif %}
         </div>
       {% endfor %}
