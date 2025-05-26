@@ -1,104 +1,138 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>BagelBoy Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      background-color: #f7f7f7;
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background-color: #fff;
-    }
-    th, td {
-      padding: 12px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    th {
-      background-color: #e0e0e0;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    button {
-      padding: 6px 12px;
-      margin-right: 4px;
-      background-color: #2a9d8f;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button.reject {
-      background-color: #e76f51;
-    }
-    .btn-row {
-      display: flex;
-      gap: 8px;
-    }
-  </style>
+    <title>Dashboard - BagelBoy</title>
+    <meta charset="UTF-8" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h2 {
+            margin-bottom: 10px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #aaa;
+            padding: 8px;
+            text-align: left;
+        }
+        button {
+            margin-right: 5px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Sollicitaties BagelBoy</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Naam</th>
-        <th>Email</th>
-        <th>Telefoon</th>
-        <th>Positie</th>
-        <th>Uren</th>
-        <th>Motivatie</th>
-        <th>Acties</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for applicant in applicants %}
-        <tr>
-          <td>{{ applicant.first_name }} {{ applicant.last_name }}</td>
-          <td>{{ applicant.email }}</td>
-          <td>{{ applicant.phone }}</td>
-          <td>{{ applicant.position }}</td>
-          <td>{{ applicant.hours }}</td>
-          <td>{{ applicant.motivation }}</td>
-          <td class="btn-row">
-            <button onclick="sendInvite('{{ applicant.email }}')">Stuur uitnodiging</button>
-            <button class="reject" onclick="sendRejection('{{ applicant.email }}')">Niet aangenomen</button>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 
-  <script>
-    async function sendInvite(email) {
-      const response = await fetch("/send_invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
-      const result = await response.json();
-      alert(result.message);
-    }
+    <div id="login">
+        <h2>Inloggen</h2>
+        <form onsubmit="login(event)">
+            <label for="username">Gebruikersnaam:</label><br />
+            <input type="text" id="username" name="username" required /><br /><br />
+            <label for="password">Wachtwoord:</label><br />
+            <input type="password" id="password" name="password" required /><br /><br />
+            <button type="submit">Log in</button>
+        </form>
+        <p id="login-error" style="color: red;"></p>
+    </div>
 
-    async function sendRejection(email) {
-      const response = await fetch("/send_rejection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
-      const result = await response.json();
-      alert(result.message);
-    }
-  </script>
+    <div id="dashboard" style="display: none;">
+        <h2>Sollicitaties</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tijdstip</th>
+                    <th>Voornaam</th>
+                    <th>Achternaam</th>
+                    <th>Email</th>
+                    <th>Telefoon</th>
+                    <th>Functie</th>
+                    <th>Uren</th>
+                    <th>Motivatie</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody id="data-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function login(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch("/auth", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("login").style.display = "none";
+                    document.getElementById("dashboard").style.display = "block";
+                    loadData();
+                } else {
+                    document.getElementById("login-error").textContent = "Onjuiste gegevens.";
+                }
+            });
+        }
+
+        function loadData() {
+            fetch("/data")
+                .then(res => res.json())
+                .then(rows => {
+                    const tbody = document.getElementById("data-body");
+                    tbody.innerHTML = "";
+
+                    rows.forEach((row, index) => {
+                        const tr = document.createElement("tr");
+                        row.slice(0, 8).forEach(cell => {
+                            const td = document.createElement("td");
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+
+                        const tdActions = document.createElement("td");
+
+                        const inviteBtn = document.createElement("button");
+                        inviteBtn.textContent = "Stuur kennismaking";
+                        inviteBtn.onclick = () => sendAction("invite", row[3], row[1]);
+
+                        const declineBtn = document.createElement("button");
+                        declineBtn.textContent = "Niet aangenomen";
+                        declineBtn.onclick = () => sendAction("decline", row[3], row[1]);
+
+                        tdActions.appendChild(inviteBtn);
+                        tdActions.appendChild(declineBtn);
+                        tr.appendChild(tdActions);
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        function sendAction(action, email, firstName) {
+            fetch("/action", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ action, email, first_name: firstName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+            });
+        }
+    </script>
 </body>
 </html>
