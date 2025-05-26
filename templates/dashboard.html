@@ -5,11 +5,19 @@
   <title>BagelBoy Dashboard</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #eef2f3;
+      font-family: 'Gotham', sans-serif;
+      background-color: #e6decf;
       padding: 2rem;
+      color: #d3272e;
     }
-    h1 { color: #333; }
+    h1, h2 {
+      color: #d3272e;
+    }
+    a {
+      color: #d3272e;
+      text-decoration: none;
+      font-weight: bold;
+    }
     .section {
       margin-bottom: 3rem;
     }
@@ -20,15 +28,25 @@
       margin: 1rem 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    button {
+    .btn {
+      display: inline-block;
       padding: 0.5rem 1rem;
-      margin-right: 0.5rem;
+      margin-top: 1rem;
+      margin-right: 1rem;
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      font-weight: bold;
+      font-size: 0.95rem;
     }
-    .invite { background-color: #337141; color: white; }
-    .reject { background-color: #999; color: white; }
+    .invite {
+      background-color: #d3272e;
+      color: white;
+    }
+    .reject {
+      background-color: #888;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -41,15 +59,16 @@
       {% for row in applications %}
         <div class="card">
           <strong>{{ row['First name'] }} {{ row['Last name'] }}</strong><br>
-          Email: {{ row['Email'] }}<br>
-          Phone: {{ row['Phone'] }}<br>
-          Position: {{ row['Position'] }}<br>
-          Hours: {{ row['Hours'] }}<br>
-          Weekend: {{ row['Weekend'] }}<br>
-          Motivation: {{ row['Motivation'] }}<br><br>
+          📧 {{ row['Email'] }}<br>
+          📱 {{ row['Phone'] }}<br>
+          🥯 Position: {{ row['Position'] }}<br>
+          ⏱ Hours/week: {{ row['Hours'] }}<br>
+          📆 Weekend: {{ row['Weekend'] }}<br>
+          💬 Motivation:<br>
+          <em>{{ row['Motivation'] }}</em><br>
           {% if status == "New" %}
-            <a href="/invite/{{ row['row_id'] }}"><button class="invite">Plan first meeting</button></a>
-            <a href="/reject/{{ row['row_id'] }}"><button class="reject">Don't proceed</button></a>
+            <a href="/invite/{{ row['row_id'] }}"><button class="btn invite">Plan first meeting</button></a>
+            <a href="/reject/{{ row['row_id'] }}"><button class="btn reject">Don't proceed</button></a>
           {% endif %}
         </div>
       {% endfor %}
