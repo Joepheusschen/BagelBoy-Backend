@@ -1,0 +1,10 @@
+# Blokkeer alle JSON-bestanden (zoals credentials)
+*.json
+
+# Maar sta requirements.txt toe (belangrijk voor dependencies)
+!requirements.txt
+
+# Andere veelgebruikte uitzonderingen
+__pycache__/
+*.pyc
+.env
