@@ -7,101 +7,86 @@
     body {
       font-family: 'Gotham', sans-serif;
       background-color: #e6decf;
+      color: #d3272e;
       padding: 2rem;
-      color: #d3272e;
     }
-    h1, h2 {
-      color: #d3272e;
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
     }
-    a {
-      color: #d3272e;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .section {
+    .status-group {
       margin-bottom: 3rem;
     }
-    .card {
-      background-color: white;
-      padding: 1rem;
-      border-radius: 10px;
+    .status-group h2 {
+      color: #d3272e;
+      border-bottom: 2px solid #d3272e;
+      padding-bottom: 0.25rem;
+    }
+    .applicant {
+      background: white;
+      padding: 1rem 1.5rem;
       margin: 1rem 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-    .btn {
-      display: inline-block;
-      padding: 0.5rem 1rem;
+    .applicant p {
+      margin: 0.5rem 0;
+    }
+    .buttons {
       margin-top: 1rem;
-      margin-right: 1rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 0.95rem;
     }
-    .next {
+    button {
       background-color: #d3272e;
       color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-right: 0.5rem;
     }
-    .reject {
+    button.secondary {
       background-color: #888;
-      color: white;
     }
   </style>
-  <script>
-    function confirmReject(rowId) {
-      const choice = confirm("Send standard rejection mail?\nClick OK to send, or Cancel to adjust the message.");
-      if (choice) {
-        window.location.href = '/reject/' + rowId;
-      } else {
-        const customText = prompt("Edit the rejection message below:", 
-`Unfortunately we have to let you know we have decided not to proceed with your application.
-We thank you for your time and effort and wish you all of luck in your future endeavors.
-Would you wish to have more information on this decision please contact Joep on 0681142820.`);
-        if (customText) {
-          fetch('/reject-custom/' + rowId, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: customText })
-          }).then(() => window.location.reload());
-        }
-      }
-    }
-  </script>
 </head>
 <body>
-  <h1>BagelBoy Applications</h1>
-  <a href="/logout">Logout</a>
+  <h1>👩‍🍳 BagelBoy Applications Dashboard</h1>
 
-  {% for status, applications in grouped.items() %}
-    <div class="section">
-      <h2>Status: {{ status }}</h2>
-      {% for row in applications %}
-        <div class="card">
-          <strong>{{ row['First name'] }} {{ row['Last name'] }}</strong><br>
-          📧 {{ row['Email'] }}<br>
-          📱 {{ row['Phone'] }}<br>
-          🥯 Position: {{ row['Position'] }}<br>
-          ⏱ Hours/week: {{ row['Hours'] }}<br>
-          📆 Weekend: {{ row['Weekend'] }}<br>
-          💬 Motivation:<br>
-          <em>{{ row['Motivation'] }}</em><br>
+  {% for status, applicants in grouped.items() %}
+    <div class="status-group">
+      <h2>{{ status }}</h2>
 
-          {% set row_id = row['row_id'] %}
-          {% if status == 'New' %}
-            <a href="/update-status/{{ row_id }}/1st meeting"><button class="btn next">To 1st meeting</button></a>
-          {% elif status == '1st meeting' %}
-            <a href="/update-status/{{ row_id }}/Trial"><button class="btn next">To Trial</button></a>
-          {% elif status == 'Trial' %}
-            <a href="/update-status/{{ row_id }}/Hired"><button class="btn next">To Hired</button></a>
+      {% for sollicitant in applicants %}
+        <div class="applicant">
+          <p><strong>{{ sollicitant['First name'] }} {{ sollicitant['Last name'] }}</strong></p>
+          <p>Email: {{ sollicitant['Email'] }}</p>
+          <p>Phone: {{ sollicitant['Phone'] }}</p>
+          <p>Position: {{ sollicitant['Position'] }}</p>
+          <p>Hours/week: {{ sollicitant['Hours'] }}</p>
+          <p>Weekend availability: {{ sollicitant['Weekend'] }}</p>
+          <p>Motivation: {{ sollicitant['Motivation'] }}</p>
+          <p>Status: {{ sollicitant['Status'] }}</p>
+          {% if sollicitant.event %}
+            <p><strong>📅 Scheduled meeting:</strong> {{ sollicitant.event }}</p>
           {% endif %}
-          
-          {% if status != 'Not hired' and status != 'Hired' %}
-            <button class="btn reject" onclick="confirmReject({{ row_id }})">Don't proceed</button>
-          {% endif %}
+
+          <div class="buttons">
+            {% if status == 'New' %}
+              <a href="/update-status/{{ sollicitant.row_id }}/1st meeting"><button>To 1st meeting</button></a>
+            {% elif status == '1st meeting' %}
+              <a href="/update-status/{{ sollicitant.row_id }}/Trial"><button>To Trial</button></a>
+            {% elif status == 'Trial' %}
+              <a href="/update-status/{{ sollicitant.row_id }}/Hired"><button>To Hired</button></a>
+            {% endif %}
+
+            {% if status != 'Not hired' %}
+              <button class="secondary" onclick="openRejectModal({{ sollicitant.row_id }})">Don't proceed</button>
+            {% endif %}
+          </div>
         </div>
       {% endfor %}
     </div>
   {% endfor %}
-</body>
-</html>
+
+  <!-- Reject Modal -->
+  <div id="rejectModal" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50
