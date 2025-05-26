@@ -8,12 +8,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 
-# Setup voor Google Sheets (via environment variable)
+# Setup voor Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
-sheet = client.open("HR BagelBoy Database").sheet1  # Naam van je spreadsheet
+sheet = client.open("HR BagelBoy Database").sheet1
 
 @app.route('/')
 def index():
@@ -21,26 +21,30 @@ def index():
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    # Gegevens uit het formulier
-    name = request.form.get('name')
+    # Gegevens uit formulier
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
     email = request.form.get('email')
     phone = request.form.get('phone')
-    location = request.form.get('location')
+    position = request.form.get('position')
+    hours = request.form.get('hours')
+    weekend = request.form.get('weekend')
     motivation = request.form.get('motivation')
-    salary = request.form.get('salary')
-    availability = request.form.get('availability')
 
-    # 1. Voeg toe aan Google Sheet
-    sheet.append_row([name, email, phone, location, motivation, salary, availability])
+    # Toevoegen aan Google Sheet (Status altijd 'New')
+    sheet.append_row([first_name, last_name, email, phone, position, hours, weekend, motivation, "New"])
 
-    # 2. Bevestigingsmail naar sollicitant
-    subject = "Application received – BagelBoy"
-    body = f"""Hi {name},
+    # Bevestiging naar sollicitant
+    subject = "We received your application – BagelBoy"
+    body = f"""Hi {first_name},
 
-Thanks for your application – we’ll be in touch as soon as possible!
+Thanks for applying at BagelBoy as a {position} 🍳
+
+We’ll be in touch with you as soon as possible.
 
 Have a great day,
-BagelBoy HR"""
+BagelBoy HR
+"""
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = os.environ["EMAIL_SENDER"]
@@ -50,21 +54,20 @@ BagelBoy HR"""
         server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
         server.send_message(msg)
 
-    # 3. Interne mail naar jezelf
-    internal_subject = f"New application from {name}"
+    # Interne melding
+    internal_subject = f"New application: {first_name} {last_name}"
     internal_body = f"""
 New application received:
 
-Name: {name}
+Name: {first_name} {last_name}
 Email: {email}
 Phone: {phone}
-Location: {location}
+Position: {position}
+Hours/week: {hours}
+Weekend availability: {weekend}
 
 Motivation:
 {motivation}
-
-Salary expectation: {salary}
-Availability: {availability}
 """
     internal_msg = MIMEText(internal_body)
     internal_msg["Subject"] = internal_subject
