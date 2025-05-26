@@ -1,76 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <title>BagelBoy Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f4; }
-        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 2rem; }
-        th, td { border: 1px solid #ccc; padding: 1rem; text-align: left; }
-        th { background-color: #eaeaea; }
-        h1 { text-align: center; color: #d3272e; }
-        .btn {
-            padding: 0.5rem 1rem;
-            margin-right: 0.5rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #fff;
-        }
-        .invite { background-color: #28a745; }
-        .reject { background-color: #dc3545; }
-    </style>
+  <meta charset="UTF-8">
+  <title>BagelBoy Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #e0e0e0;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    button {
+      padding: 6px 12px;
+      margin-right: 4px;
+      background-color: #2a9d8f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button.reject {
+      background-color: #e76f51;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Sollicitaties Dashboard</h1>
-    <table id="applicants-table">
-        <thead>
-            <tr>
-                <th>Naam</th>
-                <th>Email</th>
-                <th>Functie</th>
-                <th>Acties</th>
-            </tr>
-        </thead>
-        <tbody id="table-body">
-            <!-- Wordt ingevuld met JS -->
-        </tbody>
-    </table>
+  <h1>Sollicitaties BagelBoy</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Naam</th>
+        <th>Email</th>
+        <th>Telefoon</th>
+        <th>Positie</th>
+        <th>Uren</th>
+        <th>Motivatie</th>
+        <th>Acties</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for applicant in applicants %}
+        <tr>
+          <td>{{ applicant.first_name }} {{ applicant.last_name }}</td>
+          <td>{{ applicant.email }}</td>
+          <td>{{ applicant.phone }}</td>
+          <td>{{ applicant.position }}</td>
+          <td>{{ applicant.hours }}</td>
+          <td>{{ applicant.motivation }}</td>
+          <td class="btn-row">
+            <button onclick="sendInvite('{{ applicant.email }}')">Stuur uitnodiging</button>
+            <button class="reject" onclick="sendRejection('{{ applicant.email }}')">Niet aangenomen</button>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-    <script>
-        async function fetchApplicants() {
-            const response = await fetch('/data');
-            const applicants = await response.json();
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
+  <script>
+    async function sendInvite(email) {
+      const response = await fetch("/send_invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const result = await response.json();
+      alert(result.message);
+    }
 
-            applicants.forEach(applicant => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${applicant.first_name} ${applicant.last_name}</td>
-                    <td>${applicant.email}</td>
-                    <td>${applicant.position}</td>
-                    <td>
-                        <button class="btn invite" onclick="sendAction('${applicant.email}', 'invite')">Stuur uitnodiging</button>
-                        <button class="btn reject" onclick="sendAction('${applicant.email}', 'reject')">Niet aangenomen</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function sendAction(email, type) {
-            const endpoint = type === 'invite' ? '/send_invite' : '/send_rejection';
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email })
-            });
-            const result = await response.json();
-            alert(result.message);
-        }
-
-        fetchApplicants();
-    </script>
+    async function sendRejection(email) {
+      const response = await fetch("/send_rejection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const result = await response.json();
+      alert(result.message);
+    }
+  </script>
 </body>
 </html>
