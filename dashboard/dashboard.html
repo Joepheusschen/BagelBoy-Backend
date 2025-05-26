@@ -38,4 +38,23 @@
         a {
             display: block;
             margin-top: 1.5rem;
-            color: #337141
+            color: #337141;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Welkom bij het BagelBoy Dashboard, {{ user }}</h1>
+        <p>Je bent succesvol ingelogd. Hier kun je sollicitaties beheren.</p>
+
+        <div class="actions">
+            <button onclick="alert('Kennismaking verstuurd!')">Stuur uitnodiging kennismaking</button>
+            <button class="secondary" onclick="alert('Kandidaat gemarkeerd als niet aangenomen')">Markeer als niet aangenomen</button>
+            <button onclick="alert('Contract gegenereerd en verstuurd!')">Genereer & verstuur contract</button>
+        </div>
+
+        <a href="/logout">Uitloggen</a>
+    </div>
+</body>
+</html>
