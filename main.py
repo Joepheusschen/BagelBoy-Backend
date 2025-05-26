@@ -5,12 +5,10 @@ from fastapi.templating import Jinja2Templates
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# App setup
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="geheimetestsleutel")
 templates = Jinja2Templates(directory="dashboard")
 
-# Google Sheets functie
 def get_open_applications():
     scope = [
         "https://spreadsheets.google.com/feeds",
@@ -26,11 +24,9 @@ def get_open_applications():
     filtered = [row for row in rows if row.get("Status", "").lower() not in ["afgewezen", "gesloten"]]
     return filtered
 
-# Routes
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return RedirectResponse(url="/dashboard")
-
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
@@ -38,21 +34,22 @@ async def dashboard(request: Request):
     sollicitaties = get_open_applications()
     return templates.TemplateResponse("dashboard.html", {"request": request, "user": user, "sollicitaties": sollicitaties})
 
-
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/dashboard")
 
-
-# Nieuwe sollicitaties ontvangen via formulier
 @app.post("/submit")
 async def submit(
-    naam: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
     email: str = Form(...),
-    telefoon: str = Form(...),
-    locatie: str = Form(...),
-    motivatie: str = Form(...)
+    phone: str = Form(...),
+    position: str = Form(...),
+    hours: str = Form(...),
+    motivation: str = Form(...),
+    salary_expectation: str = Form(...),
+    availability: str = Form(...)
 ):
     scope = [
         "https://spreadsheets.google.com/feeds",
@@ -64,6 +61,18 @@ async def submit(
     client = gspread.authorize(creds)
 
     sheet = client.open("HR BagelBoy Database").worksheet("Sollicitaties")
-    sheet.append_row([naam, email, telefoon, locatie, motivatie, "Nieuw"])
+
+    sheet.append_row([
+        first_name,
+        last_name,
+        email,
+        phone,
+        position,
+        hours,
+        motivation,
+        salary_expectation,
+        availability,
+        "Nieuw"
+    ])
 
     return RedirectResponse(url="/dashboard", status_code=303)
