@@ -1,13 +1,1 @@
-{
-  "type": "service_account",
-  "project_id": "bagelboy-hr-process",
-  "private_key_id": "c6d14920154c3dd4d7df54395d78451f72e3e38f",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCVdQyDUYPHKfJ8\nBqZ1lbht8vreAbIjrMT+XQCmV0NKqJ4BI9UcwO5FRQ+9jjYySQpxAioa++3aBTUO\np6ONlzMHdq+3r0dw/na3Rn48FYcVeP5OGC7j4zaXNpAVrL6VPjl9+pJXSwcAaq47\nUPkdvKscADmbtzIpKJaw6tcwxGnZt/o5U2NPFnxFsPxTtlZSED//dA9pmotHbLXs\nJvacZ7D1A7KuxKyFEks3/bHvRhyUDiYyayJkzZUY6FzJxaigRuVE+QM6KFJvXstZ\n7S7gCVbvKxNOZZP8ltAb3fXygyGeAdpRfNbaUrHh+UIQUIngqK+SYqfDThPGAXPr\nm6wchAsBAgMBAAECggEABMlp7C7JLLDQPl6sKCnybTsSA9hED1ZyPL9XzPwQgKyj\n2t997NzVBMzwcx7B55xlRDdQh+q3tHrkNyLxXxCPptaLTDPF8v2Dad1NH7mEyRBF\n/NRTdCML1Y3+0WLl+7uxdbJ3y2nwwHeqOuYeBHDNfikXr0AP0Denk+UBnWM9DKcG\nSIWFK4UoHNl/Lm+djqV607Kc1y7L+KMUD0uSND31FvBm3JCG76RxlqNkWDjKfIRc\nVVihuqMfq/ZFeujLEMZvuDKf4vtKxQVHe0g/XpFi/5RXDH90AHQxCY2Hq/m5T2JS\ncsS6VYHwcHIPvOB2BKjfbKjaYvwRnPSKHYLKaj6TPQKBgQDJqCPNJkhvTdpIg6im\n5Qd7pNfE42my5zp0/bBm9EUAN5EwZLXiMSDEocKPXo5WR1PMcL8RAUuerBznUDFm\nESDdVgR8i5qzx6pm+oGypInWhZxV0JnvFXEwRmDuy+HK+3gW7ILvJPjWWgyE9U2K\nI1UYBh+51pzt08Wrtorz/VDOkwKBgQC9u8ZeyIlO8wH+0/sl0eSbt/r9lzAYOzxK\npJlCeiLFm7nCciLaaAVgpXqOyx8c2xPEgn/of5O7QzZdysXm5VCoW/KvtZrxrHSL\nVRYIJXPYmHjVDMvy+HEucI5RuwLAfEljJ5t+TcVvbMm2huyxTX/56DAE/s8UA8cO\nFfnr1HAomwKBgHrPEz6U2fgvCYiv5b3+LRh3w4/8jxqNB2TIOu34RS1kqd829i3S\njYoymTKG+1hACCCxaSsKBuuTFecpR2xJciJZiFHxEz35kyUz2ljZK7ihlhwM9jJM\ndKpZsh67u77KdtA/KV5KveCM5qLyYU6HRgNjd17N/LQ6DGAOw4Dj/JpRAoGABeio\nJ+GE7TGCOWZupuHfhb34Ehe4RrjpisWPhFN7a74KzfRyA21D5Zuhsnq+8E4eUnth\n8mKuviE8uzUKbsNrfKLIbxJvzeD6DDDNK9nGvtMYyEHKxDlahQC6Xe8+CbKVMoJU\nRF21rV+s9INFMcxhFO5XOICbAFuRwm2Kx/5os8sCgYEAqokisoA4UfXb4Ti7pt91\nV1rLqrx14dhQ4xuPE0VMxogbKgpqY8Hz2fvhweVmiWIJleNZmSrM14StbXxVkevV\nCjuSaQO+jY5tVv4oKdlqhOqY0sf/Sz5wbmZnfrFAbchAJ3xj+P61V3WERT9CZBvS\nLH9u86vL737HsQlt158s+sc=\n-----END PRIVATE KEY-----\n",
-  "client_email": "api-access-bagelboy@bagelboy-hr-process.iam.gserviceaccount.com",
-  "client_id": "110551018821990051081",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/api-access-bagelboy%40bagelboy-hr-process.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}
+
