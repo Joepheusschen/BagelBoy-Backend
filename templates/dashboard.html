@@ -1,60 +1,59 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>BagelBoy Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #eef2f3;
-            padding: 3rem;
-        }
-        .card {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            max-width: 800px;
-            margin: auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-        }
-        .actions {
-            margin-top: 2rem;
-        }
-        .actions button {
-            margin: 0.5rem;
-            padding: 0.75rem 1.25rem;
-            background-color: #337141;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .actions button.secondary {
-            background-color: #888;
-        }
-        a {
-            display: block;
-            margin-top: 1.5rem;
-            color: #337141;
-            text-decoration: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>BagelBoy Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef2f3;
+      padding: 2rem;
+    }
+    h1 { color: #333; }
+    .section {
+      margin-bottom: 3rem;
+    }
+    .card {
+      background-color: white;
+      padding: 1rem;
+      border-radius: 10px;
+      margin: 1rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .invite { background-color: #337141; color: white; }
+    .reject { background-color: #999; color: white; }
+  </style>
 </head>
 <body>
-    <div class="card">
-        <h1>Welkom bij het BagelBoy Dashboard, {{ user }}</h1>
-        <p>Je bent succesvol ingelogd. Hier kun je sollicitaties beheren.</p>
+  <h1>BagelBoy Applications</h1>
+  <a href="/logout">Logout</a>
 
-        <div class="actions">
-            <button onclick="alert('Kennismaking verstuurd!')">Stuur uitnodiging kennismaking</button>
-            <button class="secondary" onclick="alert('Kandidaat gemarkeerd als niet aangenomen')">Markeer als niet aangenomen</button>
-            <button onclick="alert('Contract gegenereerd en verstuurd!')">Genereer & verstuur contract</button>
+  {% for status, applications in grouped.items() %}
+    <div class="section">
+      <h2>Status: {{ status }}</h2>
+      {% for row in applications %}
+        <div class="card">
+          <strong>{{ row['First name'] }} {{ row['Last name'] }}</strong><br>
+          Email: {{ row['Email'] }}<br>
+          Phone: {{ row['Phone'] }}<br>
+          Position: {{ row['Position'] }}<br>
+          Hours: {{ row['Hours'] }}<br>
+          Weekend: {{ row['Weekend'] }}<br>
+          Motivation: {{ row['Motivation'] }}<br><br>
+          {% if status == "New" %}
+            <a href="/invite/{{ row['row_id'] }}"><button class="invite">Plan first meeting</button></a>
+            <a href="/reject/{{ row['row_id'] }}"><button class="reject">Don't proceed</button></a>
+          {% endif %}
         </div>
-
-        <a href="/logout">Uitloggen</a>
+      {% endfor %}
     </div>
+  {% endfor %}
 </body>
 </html>
