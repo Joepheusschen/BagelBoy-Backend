@@ -5,13 +5,14 @@
   <title>Apply at BagelBoy</title>
   <style>
     body {
-      background-color: #fff7e6;
-      font-family: 'Arial Rounded MT Bold', sans-serif;
+      background-color: #e6decf;
+      font-family: 'Gotham', sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       margin: 0;
+      color: #d3272e;
     }
     form {
       background: white;
@@ -19,7 +20,7 @@
       border-radius: 20px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 500px;
+      max-width: 550px;
     }
     h1 {
       text-align: center;
@@ -30,7 +31,7 @@
       margin-top: 1rem;
       font-weight: bold;
     }
-    input, textarea, select {
+    input, select, textarea {
       width: 100%;
       padding: 0.75rem;
       margin-top: 0.25rem;
@@ -40,8 +41,8 @@
       font-size: 1rem;
     }
     button {
-      margin-top: 1.5rem;
-      background-color: #ff9900;
+      margin-top: 2rem;
+      background-color: #d3272e;
       color: white;
       padding: 0.75rem 1.5rem;
       border: none;
@@ -51,13 +52,13 @@
       width: 100%;
     }
     button:hover {
-      background-color: #e88a00;
+      background-color: #b01f24;
     }
   </style>
 </head>
 <body>
   <form method="POST" action="/submit">
-    <h1>Join the BagelBoy Family</h1>
+    <h1>Join the BagelBoy Team 🥯</h1>
 
     <label for="first_name">First name</label>
     <input type="text" id="first_name" name="first_name" required>
@@ -71,19 +72,21 @@
     <label for="phone">Phone number</label>
     <input type="text" id="phone" name="phone" required>
 
-    <label for="position">Position</label>
+    <label for="position">Which position are you applying for?</label>
     <select id="position" name="position" required>
-      <option value="">-- Select --</option>
       <option value="BagelMaker">BagelMaker</option>
       <option value="Barista">Barista</option>
       <option value="Baker">Baker</option>
     </select>
 
-    <label for="hours">Hours per week</label>
+    <label for="hours">How many hours can you work per week?</label>
     <input type="text" id="hours" name="hours" required>
 
     <label for="weekend">Are you available in the weekend?</label>
-    <input type="text" id="weekend" name="weekend" required>
+    <select id="weekend" name="weekend" required>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
 
     <label for="motivation">What is your motivation for the position and what is your (relevant) experience?</label>
     <textarea id="motivation" name="motivation" rows="4" required></textarea>
