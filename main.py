@@ -13,7 +13,7 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
-sheet = client.open("Sollicitaties BagelBoy").sheet1  # Naam van je spreadsheet
+sheet = client.open("HR BagelBoy Database").sheet1  # Naam van je spreadsheet
 
 @app.route('/')
 def index():
