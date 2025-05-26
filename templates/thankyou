@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thank You!</title>
+  <style>
+    body {
+      background-color: #fff7e6;
+      font-family: 'Arial Rounded MT Bold', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .message {
+      background: white;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #333;
+    }
+    p {
+      font-size: 1.2rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <h1>Thank you for your application!</h1>
+    <p>We will be in touch as soon as possible,<br>have a nice day for now!</p>
+  </div>
+</body>
+</html>
