@@ -81,8 +81,8 @@ def invite(row_id):
 
     sheet.update_cell(row_id, 9, "Invited")
 
-    subject = "Invitation to meet – BagelBoy"
-    body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\nPlease use this link to schedule yourself:\n\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nYou can schedule yourself any day at 9:00 or 11:00.\n\nBagelBoy HR"""
+    subject = "Invitation first meeting – BagelBoy"
+    body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease use this link to schedule yourself:\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nYou can schedule yourself any day at 9:00 or 11:00.\n\nBagelBoy HR"""
     send_email(subject, body, email)
 
     notify_me = f"{first_name} invited for a meeting. Check when they booked in Google Calendar."
