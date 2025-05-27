@@ -6,19 +6,25 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import unquote
+from datetime import datetime, timedelta
+from googleapiclient.discovery import build
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 
-# Google Sheets Setup
+# Google Sheets + Calendar Setup
 scope = [
     "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/calendar"
 ]
 google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
+calendar_service = build('calendar', 'v3', credentials=creds)
+CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
+JOEP_EMAIL = "joepheusschen@gmail.com"
 
 @app.route('/')
 def index():
@@ -102,12 +108,12 @@ def update_status(row_id, new_status):
 
     if new_status == "1st meeting":
         subject = "Invitation first meeting – BagelBoy"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nClick below to schedule:\nhttps://calendar.google.com/calendar/u/0/r/eventedit?text=Intake+{first_name}+{last_name}\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nPlease plan your intake here:\nhttps://yourdomain.com/schedule/{row_id}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Trial":
         subject = "Invitation trial shift – BagelBoy"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease name your meeting in Google Calendar as follows: Trial {first_name} {last_name}\n\nClick below to schedule:\nhttps://calendar.google.com/calendar/u/0/r/eventedit?text=Trial+{first_name}+{last_name}\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease plan your trial here:\nhttps://yourdomain.com/schedule/{row_id}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Not hired":
@@ -117,23 +123,49 @@ def update_status(row_id, new_status):
 
     return redirect(url_for('dashboard'))
 
-@app.route('/invite/<int:row_id>')
-def invite(row_id):
-    row = sheet.row_values(row_id)
-    email = row[2]
-    first_name = row[0]
-    last_name = row[1]
+@app.route('/schedule/<int:row_id>', methods=['GET', 'POST'])
+def schedule(row_id):
+    if request.method == 'GET':
+        row = sheet.row_values(row_id)
+        if not row:
+            return "Invalid row ID", 404
+        return render_template("schedule.html", row_id=row_id, first_name=row[0], last_name=row[1], email=row[2])
 
-    sheet.update_cell(row_id, 9, "Invited")
+    if request.method == 'POST':
+        date_str = request.form.get('date')
+        time_str = request.form.get('time')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        email = request.form.get('email')
 
-    subject = "Invitation first meeting – BagelBoy"
-    body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nClick below to schedule:\nhttps://calendar.google.com/calendar/u/0/r/eventedit?text=Intake+{first_name}+{last_name}\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
-    send_email(subject, body, email)
+        if not all([date_str, time_str, first_name, last_name, email]):
+            return "Missing data", 400
 
-    notify_me = f"{first_name} invited for a meeting. Check when they booked in Google Calendar."
-    send_email("Candidate invited", notify_me, os.environ["EMAIL_RECEIVER"])
+        start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        end_dt = start_dt + timedelta(minutes=15)
 
-    return redirect(url_for('dashboard'))
+        event = {
+            'summary': f"Intake {first_name} {last_name}",
+            'start': {
+                'dateTime': start_dt.isoformat(),
+                'timeZone': 'Europe/Amsterdam',
+            },
+            'end': {
+                'dateTime': end_dt.isoformat(),
+                'timeZone': 'Europe/Amsterdam',
+            },
+            'attendees': [
+                {'email': email},
+                {'email': JOEP_EMAIL}
+            ],
+            'reminders': {
+                'useDefault': True
+            }
+        }
+
+        calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+
+        return render_template("thankyou.html")
 
 @app.route('/reject/<int:row_id>')
 def reject(row_id):
@@ -151,29 +183,3 @@ def reject(row_id):
 
 @app.route('/reject-custom/<int:row_id>', methods=['POST'])
 def reject_custom(row_id):
-    data = request.get_json()
-    message = data.get('message')
-    row = sheet.row_values(row_id)
-    email = row[2]
-    first_name = row[0]
-
-    sheet.update_cell(row_id, 9, "Not hired")
-
-    subject = "BagelBoy application update"
-    body = f"Hi {first_name},\n\n{message}\n\nBagelBoy HR"
-    send_email(subject, body, email)
-
-    return jsonify({'status': 'ok'})
-
-def send_email(subject, body, to):
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = os.environ["EMAIL_SENDER"]
-    msg["To"] = to
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
-        server.send_message(msg)
-
-if __name__ == '__main__':
-    app.run(debug=True)
