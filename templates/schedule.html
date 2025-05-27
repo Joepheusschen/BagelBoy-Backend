@@ -5,8 +5,8 @@
   <title>Schedule Your Appointment</title>
   <style>
     body {
-      font-family: 'Arial Rounded MT Bold', sans-serif;
       background-color: #fff7e6;
+      font-family: 'Arial Rounded MT Bold', sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -20,52 +20,78 @@
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
       text-align: center;
       max-width: 400px;
-      width: 100%;
     }
     h1 {
-      font-size: 1.8rem;
-      color: #333;
-      margin-bottom: 1rem;
+      color: #d3272e;
     }
-    p {
-      font-size: 1rem;
-      color: #666;
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: bold;
     }
-    form {
-      margin-top: 1.5rem;
-    }
-    input, button {
+    input[type="date"] {
+      padding: 0.5rem;
       width: 100%;
-      padding: 0.6rem;
-      margin: 0.5rem 0;
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-    button {
+    .time-buttons {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 1rem;
+    }
+    .time-button {
       background-color: #d3272e;
       color: white;
-      font-weight: bold;
+      padding: 0.5rem 1rem;
       border: none;
+      border-radius: 8px;
       cursor: pointer;
     }
+    .time-button.active {
+      background-color: #a31e20;
+    }
+    button[type="submit"] {
+      background-color: #d3272e;
+      color: white;
+      padding: 0.7rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 1.5rem;
+    }
   </style>
+  <script>
+    let selectedTime = "";
+
+    function selectTime(time) {
+      selectedTime = time;
+      document.getElementById("time").value = time;
+
+      document.querySelectorAll(".time-button").forEach(btn => btn.classList.remove("active"));
+      document.getElementById("btn-" + time).classList.add("active");
+    }
+  </script>
 </head>
 <body>
   <div class="container">
-    <h1>Schedule your appointment</h1>
+    <h1>Schedule your intake</h1>
     <p>You can schedule your intake at <strong>9:00</strong> or <strong>11:00</strong> any day.</p>
     <form method="POST">
       <input type="hidden" name="first_name" value="{{ first_name }}">
       <input type="hidden" name="last_name" value="{{ last_name }}">
       <input type="hidden" name="email" value="{{ email }}">
+      <input type="hidden" id="time" name="time">
 
-      <label for="date">Date</label>
+      <label for="date">Select a date:</label>
       <input type="date" name="date" required>
 
-      <label for="time">Time (e.g. 09:00 or 11:00)</label>
-      <input type="time" name="time" required>
+      <div class="time-buttons">
+        <button type="button" class="time-button" id="btn-09:00" onclick="selectTime('09:00')">09:00</button>
+        <button type="button" class="time-button" id="btn-11:00" onclick="selectTime('11:00')">11:00</button>
+      </div>
 
-      <button type="submit">Schedule</button>
+      <button type="submit">Confirm Appointment</button>
     </form>
   </div>
 </body>
