@@ -26,7 +26,10 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
-CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
+
+# 🔁 DIT IS DE ENIGE AANPASSING:
+CALENDAR_ID = "primary"  # <-- eigen kalender van service account
+
 JOEP_EMAIL = "joepheusschen@gmail.com"
 
 @app.route('/')
