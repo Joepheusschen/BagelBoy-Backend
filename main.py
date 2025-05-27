@@ -8,6 +8,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import unquote
 from datetime import datetime, timedelta
 from googleapiclient.discovery import build
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
@@ -141,10 +144,17 @@ def schedule(row_id):
             last_name = request.form.get('last_name')
             email = request.form.get('email')
 
+            logging.debug(f"Received: {date_str=} {time_str=} {first_name=} {last_name=} {email=}")
+
             if not all([date_str, time_str, first_name, last_name, email]):
                 return "Missing data", 400
 
-            start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            try:
+                start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            except ValueError as ve:
+                logging.error("Date parsing error", exc_info=True)
+                return f"Date format error: {ve}", 400
+
             end_dt = start_dt + timedelta(minutes=15)
 
             event = {
@@ -166,10 +176,15 @@ def schedule(row_id):
                 }
             }
 
+            logging.debug(f"Creating event: {event}")
+
             calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+
+            logging.info(f"Event created successfully for {first_name} {last_name}")
 
             return render_template("thankyou.html")
     except Exception as e:
+        logging.exception("Error in scheduling")
         return f"Internal Server Error: {str(e)}", 500
 
 @app.route('/reject/<int:row_id>')
