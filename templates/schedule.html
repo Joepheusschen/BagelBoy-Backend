@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Plan your meeting</title>
+  <title>Schedule Your Appointment</title>
   <style>
     body {
-      background-color: #fff7e6;
       font-family: 'Arial Rounded MT Bold', sans-serif;
+      background-color: #fff7e6;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -19,42 +19,53 @@
       border-radius: 20px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
       text-align: center;
+      max-width: 400px;
+      width: 100%;
     }
-    input {
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+    h1 {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    p {
       font-size: 1rem;
+      color: #666;
+    }
+    form {
+      margin-top: 1.5rem;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.6rem;
+      margin: 0.5rem 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
     button {
       background-color: #d3272e;
       color: white;
-      padding: 0.5rem 1rem;
+      font-weight: bold;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
       cursor: pointer;
-      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Plan your meeting</h1>
+    <h1>Schedule your appointment</h1>
+    <p>You can schedule your intake at <strong>9:00</strong> or <strong>11:00</strong> any day.</p>
     <form method="POST">
-      <p><strong>{{ first_name }} {{ last_name }}</strong></p>
       <input type="hidden" name="first_name" value="{{ first_name }}">
       <input type="hidden" name="last_name" value="{{ last_name }}">
       <input type="hidden" name="email" value="{{ email }}">
 
-      <label for="date">Date:</label><br>
-      <input type="date" name="date" required><br>
+      <label for="date">Date</label>
+      <input type="date" name="date" required>
 
-      <label for="time">Time:</label><br>
-      <input type="time" name="time" required><br>
+      <label for="time">Time (e.g. 09:00 or 11:00)</label>
+      <input type="time" name="time" required>
 
-      <button type="submit">Confirm</button>
+      <button type="submit">Schedule</button>
     </form>
   </div>
 </body>
