@@ -29,7 +29,7 @@ sheet = client.open("HR BagelBoy Database").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 # CALENDAR CONFIG
-CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com
+CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
 JOEP_EMAIL = "joepheusschen@gmail.com"
 
 @app.route('/')
