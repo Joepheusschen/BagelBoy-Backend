@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from urllib.parse import unquote
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
@@ -17,7 +18,7 @@ scope = [
 google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
-sheet = client.open("HR BagelBoy Database").sheet1  # Zorg dat deze naam klopt
+sheet = client.open("HR BagelBoy Database").sheet1
 
 @app.route('/')
 def index():
@@ -34,7 +35,6 @@ def submit():
     weekend = request.form.get('weekend')
     motivation = request.form.get('motivation')
 
-    # Voeg sollicitatie toe aan Google Sheet
     sheet.append_row([
         first_name,
         last_name,
@@ -81,7 +81,7 @@ def dashboard():
 
     for i, row in enumerate(rows):
         row_with_id = dict(row)
-        row_with_id["row_id"] = i + 2  # Sheet rows start at 2 (na header)
+        row_with_id["row_id"] = i + 2
         status = row.get("Status")
         if status in grouped:
             grouped[status].append(row_with_id)
@@ -90,15 +90,31 @@ def dashboard():
 
     return render_template("dashboard.html", grouped=grouped)
 
-from urllib.parse import unquote
-
 @app.route('/update-status/<int:row_id>/<new_status>')
 def update_status(row_id, new_status):
-    new_status = unquote(new_status)  # Decodeer bijvoorbeeld '1st%20meeting' naar '1st meeting'
+    new_status = unquote(new_status)
     sheet.update_cell(row_id, 9, new_status)
-    return redirect(url_for('dashboard'))
 
-    sheet.update_cell(row_id, 9, new_status)
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+    last_name = row[1]
+
+    if new_status == "1st meeting":
+        subject = "Invitation first meeting – BagelBoy"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nUse this link to schedule yourself:\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    elif new_status == "Trial":
+        subject = "Invitation trial shift – BagelBoy"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease name your meeting in Google Calendar as follows: Trial {first_name} {last_name}\n\nUse this link to schedule yourself:\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    elif new_status == "Not hired":
+        subject = "BagelBoy application update"
+        body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
     return redirect(url_for('dashboard'))
 
 @app.route('/invite/<int:row_id>')
