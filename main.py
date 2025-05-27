@@ -2,13 +2,12 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 import os
 import smtplib
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import unquote
 from datetime import datetime, timedelta
+from googleapiclient.discovery import build
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -16,15 +15,18 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 
-# Google Sheets Setup
+# Google Sheets + Calendar Setup
 scope = [
     "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/calendar"
 ]
 google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
+calendar_service = build('calendar', 'v3', credentials=creds)
+CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
 JOEP_EMAIL = "joepheusschen@gmail.com"
 
 @app.route('/')
@@ -143,22 +145,26 @@ def schedule(row_id):
 
         end_dt = start_dt + timedelta(minutes=15)
 
-        # ICS content
-        ics_content = f"""BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//BagelBoy//Schedule
-BEGIN:VEVENT
-SUMMARY:Intake {first_name} {last_name}
-DTSTART;TZID=Europe/Amsterdam:{start_dt.strftime('%Y%m%dT%H%M%S')}
-DTEND;TZID=Europe/Amsterdam:{end_dt.strftime('%Y%m%dT%H%M%S')}
-DESCRIPTION=Intake meeting with BagelBoy
-LOCATION=BagelBoy HQ
-END:VEVENT
-END:VCALENDAR"""
+        event = {
+            'summary': f"Intake {first_name} {last_name}",
+            'start': {
+                'dateTime': start_dt.isoformat(),
+                'timeZone': 'Europe/Amsterdam',
+            },
+            'end': {
+                'dateTime': end_dt.isoformat(),
+                'timeZone': 'Europe/Amsterdam',
+            },
+            'attendees': [
+                {'email': email},
+                {'email': JOEP_EMAIL}
+            ],
+            'reminders': {
+                'useDefault': True
+            }
+        }
 
-        filename = "bagelboy-intake.ics"
-        send_email("Intake confirmed – BagelBoy", f"Hi {first_name},\n\nYour intake is planned at {time_str} on {date_str}.\n\nSee attached calendar invite.\n\nBagelBoy HR", email, ics_content, filename)
-        send_email("New intake scheduled", f"{first_name} {last_name} planned intake at {time_str} on {date_str}.", JOEP_EMAIL, ics_content, filename)
+        calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
 
         return render_template("thankyou.html")
 
@@ -192,18 +198,11 @@ def reject_custom(row_id):
 
     return jsonify({'status': 'ok'})
 
-def send_email(subject, body, to, ics_data=None, ics_filename=None):
-    msg = MIMEMultipart()
+def send_email(subject, body, to):
+    msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = os.environ["EMAIL_SENDER"]
     msg["To"] = to
-
-    msg.attach(MIMEText(body, "plain"))
-
-    if ics_data:
-        part = MIMEApplication(ics_data, _subtype="ics")
-        part.add_header('Content-Disposition', 'attachment', filename=ics_filename or "invite.ics")
-        msg.attach(part)
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
