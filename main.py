@@ -9,6 +9,7 @@ from urllib.parse import unquote
 from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 import logging
+import pytz
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -28,7 +29,7 @@ sheet = client.open("HR BagelBoy Database").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 # CALENDAR CONFIG
-CALENDAR_ID = "joepheusschen@gmail.com"  # Calendar gedeeld met: api-access-bagelboy@bagelboy-hr-process.iam.gserviceaccount.com
+CALENDAR_ID = "joepheusschen@gmail.com"
 JOEP_EMAIL = "joepheusschen@gmail.com"
 
 @app.route('/')
@@ -141,12 +142,13 @@ def schedule(row_id):
             return "Missing data", 400
 
         try:
-            start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        except ValueError:
-            logging.exception("Invalid datetime format")
+            tz = pytz.timezone("Europe/Amsterdam")
+            naive_start = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            start_dt = tz.localize(naive_start)
+            end_dt = start_dt + timedelta(minutes=15)
+        except Exception:
+            logging.exception("Failed to parse or localize datetime")
             return "Invalid date/time format", 400
-
-        end_dt = start_dt + timedelta(minutes=15)
 
         event = {
             'summary': f"Intake {first_name} {last_name}",
@@ -171,9 +173,9 @@ def schedule(row_id):
             logging.debug(f"Creating event in calendar: {CALENDAR_ID}")
             logging.debug(f"Event data: {event}")
             calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
-        except Exception as e:
+        except Exception:
             logging.exception("Failed to insert calendar event")
-            return f"Internal Server Error: {str(e)}", 500
+            return "Internal Server Error: Failed to insert calendar event", 500
 
         return render_template("thankyou.html")
 
