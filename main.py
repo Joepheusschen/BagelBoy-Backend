@@ -3,7 +3,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 import json
-gspread
+import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import unquote
 from datetime import datetime, timedelta
