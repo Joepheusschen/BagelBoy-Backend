@@ -6,7 +6,7 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import unquote
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -61,6 +61,69 @@ def submit():
 
     return render_template("thankyou.html")
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == os.environ.get("DASHBOARD_PASSWORD"):
+            session['logged_in'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            return render_template('login.html', error='Incorrect password')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    rows = sheet.get_all_records()
+    grouped = {"New": [], "1st meeting": [], "Trial": [], "Hired": [], "Not hired": [], "Other": []}
+
+    for i, row in enumerate(rows):
+        row_with_id = dict(row)
+        row_with_id["row_id"] = i + 2
+        status = row.get("Status")
+        if status in grouped:
+            grouped[status].append(row_with_id)
+        else:
+            grouped["Other"].append(row_with_id)
+
+    return render_template("dashboard.html", grouped=grouped)
+
+@app.route('/update-status/<int:row_id>/<new_status>')
+def update_status(row_id, new_status):
+    new_status = unquote(new_status)
+    sheet.update_cell(row_id, 9, new_status)
+
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+    last_name = row[1]
+
+    if new_status == "1st meeting":
+        subject = "Invitation first meeting – BagelBoy"
+        link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nYou can schedule your intake at 9 or 11 any day.\n\nPlease plan your intake here:\n{link}\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    elif new_status == "Trial":
+        subject = "Invitation trial shift – BagelBoy"
+        link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nYou can schedule your intake at 9 or 11 any day.\n\nPlease plan your trial here:\n{link}\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    elif new_status == "Not hired":
+        subject = "BagelBoy application update"
+        body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    return redirect(url_for('dashboard'))
+
 @app.route('/schedule/<int:row_id>', methods=['GET', 'POST'])
 def schedule(row_id):
     try:
@@ -82,17 +145,47 @@ def schedule(row_id):
             if not all([date_str, time_str, first_name, last_name, email]):
                 return "Missing data", 400
 
-            subject = "Your appointment is scheduled – BagelBoy"
-            body = f"""Hi {first_name},\n\nYour appointment has been scheduled for {date_str} at {time_str}.\n\nSee you then!\n\nBagelBoy HR"""
+            subject = "BagelBoy intake confirmed"
+            body = f"Hi {first_name},\n\nYour intake has been scheduled for {date_str} at {time_str}.\nWe look forward to seeing you!\n\nBagelBoy HR"
             send_email(subject, body, email)
 
-            internal = f"Appointment scheduled for {first_name} {last_name} on {date_str} at {time_str}."
-            send_email("New appointment scheduled", internal, JOEP_EMAIL)
+            internal = f"Intake scheduled:\n{first_name} {last_name}, {email}, {date_str} {time_str}"
+            send_email("Intake scheduled", internal, JOEP_EMAIL)
 
             return render_template("thankyou.html")
     except Exception as e:
         logging.exception("Error in scheduling")
         return f"Internal Server Error: {str(e)}", 500
+
+@app.route('/reject/<int:row_id>')
+def reject(row_id):
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+
+    sheet.update_cell(row_id, 9, "Not hired")
+
+    subject = "BagelBoy application update"
+    body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+    send_email(subject, body, email)
+
+    return redirect(url_for('dashboard'))
+
+@app.route('/reject-custom/<int:row_id>', methods=['POST'])
+def reject_custom(row_id):
+    data = request.get_json()
+    message = data.get('message')
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+
+    sheet.update_cell(row_id, 9, "Not hired")
+
+    subject = "BagelBoy application update"
+    body = f"Hi {first_name},\n\n{message}\n\nBagelBoy HR"
+    send_email(subject, body, email)
+
+    return jsonify({'status': 'ok'})
 
 def send_email(subject, body, to):
     msg = MIMEText(body)
