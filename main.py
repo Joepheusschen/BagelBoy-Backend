@@ -2,6 +2,8 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 import os
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -41,15 +43,7 @@ def submit():
     motivation = request.form.get('motivation')
 
     sheet.append_row([
-        first_name,
-        last_name,
-        email,
-        phone,
-        position,
-        hours,
-        weekend,
-        motivation,
-        "New"
+        first_name, last_name, email, phone, position, hours, weekend, motivation, "New"
     ])
 
     subject = "We received your application – BagelBoy"
@@ -119,43 +113,54 @@ def update_status(row_id, new_status):
 
     elif new_status == "Not hired":
         subject = "BagelBoy application update"
-        body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\n\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     return redirect(url_for('dashboard'))
 
 @app.route('/schedule/<int:row_id>', methods=['GET', 'POST'])
 def schedule(row_id):
-    try:
-        if request.method == 'GET':
-            row = sheet.row_values(row_id)
-            if not row:
-                return "Invalid row ID", 404
-            return render_template("schedule.html", row_id=row_id, first_name=row[0], last_name=row[1], email=row[2])
+    if request.method == 'GET':
+        row = sheet.row_values(row_id)
+        if not row:
+            return "Invalid row ID", 404
+        return render_template("schedule.html", row_id=row_id, first_name=row[0], last_name=row[1], email=row[2])
 
-        if request.method == 'POST':
-            date_str = request.form.get('date')
-            time_str = request.form.get('time')
-            first_name = request.form.get('first_name')
-            last_name = request.form.get('last_name')
-            email = request.form.get('email')
+    if request.method == 'POST':
+        date_str = request.form.get('date')
+        time_str = request.form.get('time')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        email = request.form.get('email')
 
-            logging.debug(f"Received: {date_str=} {time_str=} {first_name=} {last_name=} {email=}")
+        if not all([date_str, time_str, first_name, last_name, email]):
+            return "Missing data", 400
 
-            if not all([date_str, time_str, first_name, last_name, email]):
-                return "Missing data", 400
+        try:
+            start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return "Invalid date/time format", 400
 
-            subject = "BagelBoy intake confirmed"
-            body = f"Hi {first_name},\n\nYour intake has been scheduled for {date_str} at {time_str}.\nWe look forward to seeing you!\n\nBagelBoy HR"
-            send_email(subject, body, email)
+        end_dt = start_dt + timedelta(minutes=15)
 
-            internal = f"Intake scheduled:\n{first_name} {last_name}, {email}, {date_str} {time_str}"
-            send_email("Intake scheduled", internal, JOEP_EMAIL)
+        # ICS content
+        ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//BagelBoy//Schedule
+BEGIN:VEVENT
+SUMMARY:Intake {first_name} {last_name}
+DTSTART;TZID=Europe/Amsterdam:{start_dt.strftime('%Y%m%dT%H%M%S')}
+DTEND;TZID=Europe/Amsterdam:{end_dt.strftime('%Y%m%dT%H%M%S')}
+DESCRIPTION=Intake meeting with BagelBoy
+LOCATION=BagelBoy HQ
+END:VEVENT
+END:VCALENDAR"""
 
-            return render_template("thankyou.html")
-    except Exception as e:
-        logging.exception("Error in scheduling")
-        return f"Internal Server Error: {str(e)}", 500
+        filename = "bagelboy-intake.ics"
+        send_email("Intake confirmed – BagelBoy", f"Hi {first_name},\n\nYour intake is planned at {time_str} on {date_str}.\n\nSee attached calendar invite.\n\nBagelBoy HR", email, ics_content, filename)
+        send_email("New intake scheduled", f"{first_name} {last_name} planned intake at {time_str} on {date_str}.", JOEP_EMAIL, ics_content, filename)
+
+        return render_template("thankyou.html")
 
 @app.route('/reject/<int:row_id>')
 def reject(row_id):
@@ -166,7 +171,7 @@ def reject(row_id):
     sheet.update_cell(row_id, 9, "Not hired")
 
     subject = "BagelBoy application update"
-    body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+    body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\n\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
     send_email(subject, body, email)
 
     return redirect(url_for('dashboard'))
@@ -187,11 +192,18 @@ def reject_custom(row_id):
 
     return jsonify({'status': 'ok'})
 
-def send_email(subject, body, to):
-    msg = MIMEText(body)
+def send_email(subject, body, to, ics_data=None, ics_filename=None):
+    msg = MIMEMultipart()
     msg["Subject"] = subject
     msg["From"] = os.environ["EMAIL_SENDER"]
     msg["To"] = to
+
+    msg.attach(MIMEText(body, "plain"))
+
+    if ics_data:
+        part = MIMEApplication(ics_data, _subtype="ics")
+        part.add_header('Content-Disposition', 'attachment', filename=ics_filename or "invite.ics")
+        msg.attach(part)
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
