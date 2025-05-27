@@ -27,9 +27,8 @@ client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
 
-# 🔁 DIT IS DE ENIGE AANPASSING:
-CALENDAR_ID = "joepheusschen@gmail.com"  # <-- eigen kalender van service account
-
+# CALENDAR CONFIG
+CALENDAR_ID = "joepheusschen@gmail.com"  # Calendar gedeeld met: api-access-bagelboy@bagelboy-hr-process.iam.gserviceaccount.com
 JOEP_EMAIL = "joepheusschen@gmail.com"
 
 @app.route('/')
@@ -144,6 +143,7 @@ def schedule(row_id):
         try:
             start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         except ValueError:
+            logging.exception("Invalid datetime format")
             return "Invalid date/time format", 400
 
         end_dt = start_dt + timedelta(minutes=15)
@@ -167,7 +167,13 @@ def schedule(row_id):
             }
         }
 
-        calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+        try:
+            logging.debug(f"Creating event in calendar: {CALENDAR_ID}")
+            logging.debug(f"Event data: {event}")
+            calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+        except Exception as e:
+            logging.exception("Failed to insert calendar event")
+            return f"Internal Server Error: {str(e)}", 500
 
         return render_template("thankyou.html")
 
