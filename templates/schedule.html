@@ -61,23 +61,12 @@
       margin-top: 1.5rem;
     }
   </style>
-  <script>
-    let selectedTime = "";
-
-    function selectTime(time) {
-      selectedTime = time;
-      document.getElementById("time").value = time;
-
-      document.querySelectorAll(".time-button").forEach(btn => btn.classList.remove("active"));
-      document.getElementById("btn-" + time).classList.add("active");
-    }
-  </script>
 </head>
 <body>
   <div class="container">
     <h1>Schedule your intake</h1>
     <p>You can schedule your intake at <strong>9:00</strong> or <strong>11:00</strong> any day.</p>
-    <form method="POST">
+    <form method="POST" onsubmit="return validateForm()">
       <input type="hidden" name="first_name" value="{{ first_name }}">
       <input type="hidden" name="last_name" value="{{ last_name }}">
       <input type="hidden" name="email" value="{{ email }}">
@@ -94,5 +83,26 @@
       <button type="submit">Confirm Appointment</button>
     </form>
   </div>
+
+  <script>
+    let selectedTime = "";
+
+    function selectTime(time) {
+      selectedTime = time;
+      document.getElementById("time").value = time;
+
+      document.querySelectorAll(".time-button").forEach(btn => btn.classList.remove("active"));
+      document.getElementById("btn-" + time).classList.add("active");
+    }
+
+    function validateForm() {
+      const time = document.getElementById("time").value;
+      if (!time) {
+        alert("Please select a time before confirming.");
+        return false;
+      }
+      return true;
+    }
+  </script>
 </body>
 </html>
