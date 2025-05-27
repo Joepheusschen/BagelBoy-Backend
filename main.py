@@ -90,8 +90,14 @@ def dashboard():
 
     return render_template("dashboard.html", grouped=grouped)
 
+from urllib.parse import unquote
+
 @app.route('/update-status/<int:row_id>/<new_status>')
 def update_status(row_id, new_status):
+    new_status = unquote(new_status)  # Decodeer bijvoorbeeld '1st%20meeting' naar '1st meeting'
+    sheet.update_cell(row_id, 9, new_status)
+    return redirect(url_for('dashboard'))
+
     sheet.update_cell(row_id, 9, new_status)
     return redirect(url_for('dashboard'))
 
