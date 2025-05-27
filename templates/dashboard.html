@@ -47,7 +47,51 @@
     button.secondary {
       background-color: #888;
     }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    .modal input, .modal textarea {
+      width: 100%;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
   </style>
+  <script>
+    let currentRowId = null;
+    function openRejectModal(rowId) {
+      currentRowId = rowId;
+      document.getElementById('rejectModal').style.display = 'block';
+    }
+    function closeRejectModal() {
+      document.getElementById('rejectModal').style.display = 'none';
+    }
+    function sendStandardRejection() {
+      window.location.href = `/update-status/${currentRowId}/Not%20hired`;
+    }
+    function sendCustomRejection() {
+      const message = document.getElementById('customMessage').value;
+      fetch(`/reject-custom/${currentRowId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      }).then(() => {
+        closeRejectModal();
+        window.location.reload();
+      });
+    }
+  </script>
 </head>
 <body>
   <h1>👩‍🍳 BagelBoy Applications Dashboard</h1>
@@ -67,12 +111,12 @@
           <p>Motivation: {{ sollicitant['Motivation'] }}</p>
           <p>Status: {{ sollicitant['Status'] }}</p>
           {% if sollicitant.event %}
-            <p><strong>📅 Scheduled meeting:</strong> {{ sollicitant.event }}</p>
+            <p><strong>🗓 Scheduled meeting:</strong> {{ sollicitant.event }}</p>
           {% endif %}
 
           <div class="buttons">
             {% if status == 'New' %}
-              <a href="/update-status/{{ sollicitant.row_id }}/1st meeting"><button>To 1st meeting</button></a>
+              <a href="/update-status/{{ sollicitant.row_id }}/1st%20meeting"><button>To 1st meeting</button></a>
             {% elif status == '1st meeting' %}
               <a href="/update-status/{{ sollicitant.row_id }}/Trial"><button>To Trial</button></a>
             {% elif status == 'Trial' %}
@@ -89,4 +133,13 @@
   {% endfor %}
 
   <!-- Reject Modal -->
-  <div id="rejectModal" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50
+  <div id="rejectModal" class="modal">
+    <h3>Reject applicant</h3>
+    <p>You can send the standard message or enter a custom one below.</p>
+    <textarea id="customMessage" placeholder="Custom message..."></textarea>
+    <button onclick="sendStandardRejection()">Send standard mail</button>
+    <button onclick="sendCustomRejection()">Send custom mail</button>
+    <button class="secondary" onclick="closeRejectModal()">Cancel</button>
+  </div>
+</body>
+</html>
