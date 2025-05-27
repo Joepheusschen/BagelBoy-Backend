@@ -109,13 +109,13 @@ def update_status(row_id, new_status):
     if new_status == "1st meeting":
         subject = "Invitation first meeting – BagelBoy"
         link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nPlease plan your intake here:\n{link}\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nYou can schedule your intake at 9 or 11 any day.\n\nPlease plan your intake here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Trial":
         subject = "Invitation trial shift – BagelBoy"
         link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease plan your trial here:\n{link}\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nYou can schedule your intake at 9 or 11 any day.\n\nPlease plan your trial here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Not hired":
@@ -127,47 +127,50 @@ def update_status(row_id, new_status):
 
 @app.route('/schedule/<int:row_id>', methods=['GET', 'POST'])
 def schedule(row_id):
-    if request.method == 'GET':
-        row = sheet.row_values(row_id)
-        if not row:
-            return "Invalid row ID", 404
-        return render_template("schedule.html", row_id=row_id, first_name=row[0], last_name=row[1], email=row[2])
+    try:
+        if request.method == 'GET':
+            row = sheet.row_values(row_id)
+            if not row:
+                return "Invalid row ID", 404
+            return render_template("schedule.html", row_id=row_id, first_name=row[0], last_name=row[1], email=row[2])
 
-    if request.method == 'POST':
-        date_str = request.form.get('date')
-        time_str = request.form.get('time')
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        email = request.form.get('email')
+        if request.method == 'POST':
+            date_str = request.form.get('date')
+            time_str = request.form.get('time')
+            first_name = request.form.get('first_name')
+            last_name = request.form.get('last_name')
+            email = request.form.get('email')
 
-        if not all([date_str, time_str, first_name, last_name, email]):
-            return "Missing data", 400
+            if not all([date_str, time_str, first_name, last_name, email]):
+                return "Missing data", 400
 
-        start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        end_dt = start_dt + timedelta(minutes=15)
+            start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            end_dt = start_dt + timedelta(minutes=15)
 
-        event = {
-            'summary': f"Intake {first_name} {last_name}",
-            'start': {
-                'dateTime': start_dt.isoformat(),
-                'timeZone': 'Europe/Amsterdam',
-            },
-            'end': {
-                'dateTime': end_dt.isoformat(),
-                'timeZone': 'Europe/Amsterdam',
-            },
-            'attendees': [
-                {'email': email},
-                {'email': JOEP_EMAIL}
-            ],
-            'reminders': {
-                'useDefault': True
+            event = {
+                'summary': f"Intake {first_name} {last_name}",
+                'start': {
+                    'dateTime': start_dt.isoformat(),
+                    'timeZone': 'Europe/Amsterdam',
+                },
+                'end': {
+                    'dateTime': end_dt.isoformat(),
+                    'timeZone': 'Europe/Amsterdam',
+                },
+                'attendees': [
+                    {'email': email},
+                    {'email': JOEP_EMAIL}
+                ],
+                'reminders': {
+                    'useDefault': True
+                }
             }
-        }
 
-        calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+            calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
 
-        return render_template("thankyou.html")
+            return render_template("thankyou.html")
+    except Exception as e:
+        return f"Internal Server Error: {str(e)}", 500
 
 @app.route('/reject/<int:row_id>')
 def reject(row_id):
