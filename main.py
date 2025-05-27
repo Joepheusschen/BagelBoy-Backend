@@ -108,13 +108,13 @@ def update_status(row_id, new_status):
 
     if new_status == "1st meeting":
         subject = "Invitation first meeting – BagelBoy"
-        link = f"https://bagelboy.nl/schedule/{row_id}"
+        link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
         body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nPlease plan your intake here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Trial":
         subject = "Invitation trial shift – BagelBoy"
-        link = f"https://bagelboy.nl/schedule/{row_id}"
+        link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
         body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease plan your trial here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
