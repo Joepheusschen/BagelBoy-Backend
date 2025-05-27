@@ -28,7 +28,7 @@ sheet = client.open("HR BagelBoy Database").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 # 🔁 DIT IS DE ENIGE AANPASSING:
-CALENDAR_ID = "primary"  # <-- eigen kalender van service account
+CALENDAR_ID = "joepheusschen@gmail.com"  # <-- eigen kalender van service account
 
 JOEP_EMAIL = "joepheusschen@gmail.com"
 
