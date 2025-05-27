@@ -170,11 +170,13 @@ def schedule(row_id):
         }
 
         try:
-            logging.debug(f"Creating event in calendar: {CALENDAR_ID}")
-            logging.debug(f"Event data: {event}")
-            calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
-        except Exception:
+            print("Creating event in calendar:", CALENDAR_ID)
+            print("Event data:", event)
+            response = calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+            print("Event created:", response.get('htmlLink'))
+        except Exception as e:
             logging.exception("Failed to insert calendar event")
+            print("Exception message:", str(e))
             return "Internal Server Error: Failed to insert calendar event", 500
 
         return render_template("thankyou.html")
