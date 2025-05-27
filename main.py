@@ -102,12 +102,12 @@ def update_status(row_id, new_status):
 
     if new_status == "1st meeting":
         subject = "Invitation first meeting – BagelBoy"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nUse this link to schedule yourself:\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nClick below to schedule:\nhttps://calendar.google.com/calendar/u/0/r/eventedit?text=Intake+{first_name}+{last_name}\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Trial":
         subject = "Invitation trial shift – BagelBoy"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease name your meeting in Google Calendar as follows: Trial {first_name} {last_name}\n\nUse this link to schedule yourself:\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease name your meeting in Google Calendar as follows: Trial {first_name} {last_name}\n\nClick below to schedule:\nhttps://calendar.google.com/calendar/u/0/r/eventedit?text=Trial+{first_name}+{last_name}\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Not hired":
@@ -127,7 +127,7 @@ def invite(row_id):
     sheet.update_cell(row_id, 9, "Invited")
 
     subject = "Invitation first meeting – BagelBoy"
-    body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nUse this link to schedule yourself:\nhttps://calendar.google.com/calendar/embed?src=f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961%40group.calendar.google.com&ctz=Europe%2FAmsterdam\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
+    body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting to see if we want to schedule a trial.\n\nThe meeting will take 10–15 minutes max.\n\nPlease name your meeting in Google Calendar as follows: Intake {first_name} {last_name}\n\nClick below to schedule:\nhttps://calendar.google.com/calendar/u/0/r/eventedit?text=Intake+{first_name}+{last_name}\n\nAvailable daily at 9:00 or 11:00.\n\nBagelBoy HR"""
     send_email(subject, body, email)
 
     notify_me = f"{first_name} invited for a meeting. Check when they booked in Google Calendar."
