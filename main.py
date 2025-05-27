@@ -150,6 +150,7 @@ def schedule(row_id):
                 return "Missing data", 400
 
             try:
+                time_str = time_str.zfill(5)  # Ensures format like '09:00'
                 start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
             except ValueError as ve:
                 logging.error("Date parsing error", exc_info=True)
