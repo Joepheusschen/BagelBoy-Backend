@@ -108,12 +108,14 @@ def update_status(row_id, new_status):
 
     if new_status == "1st meeting":
         subject = "Invitation first meeting – BagelBoy"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nPlease plan your intake here:\nhttps://yourdomain.com/schedule/{row_id}\n\nBagelBoy HR"""
+        link = f"https://bagelboy.nl/schedule/{row_id}"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nPlease plan your intake here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Trial":
         subject = "Invitation trial shift – BagelBoy"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease plan your trial here:\nhttps://yourdomain.com/schedule/{row_id}\n\nBagelBoy HR"""
+        link = f"https://bagelboy.nl/schedule/{row_id}"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease plan your trial here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
     elif new_status == "Not hired":
@@ -183,3 +185,29 @@ def reject(row_id):
 
 @app.route('/reject-custom/<int:row_id>', methods=['POST'])
 def reject_custom(row_id):
+    data = request.get_json()
+    message = data.get('message')
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+
+    sheet.update_cell(row_id, 9, "Not hired")
+
+    subject = "BagelBoy application update"
+    body = f"Hi {first_name},\n\n{message}\n\nBagelBoy HR"
+    send_email(subject, body, email)
+
+    return jsonify({'status': 'ok'})
+
+def send_email(subject, body, to):
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = os.environ["EMAIL_SENDER"]
+    msg["To"] = to
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
+        server.send_message(msg)
+
+if __name__ == '__main__':
+    app.run(debug=True)
