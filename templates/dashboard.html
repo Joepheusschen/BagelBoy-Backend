@@ -9,19 +9,35 @@
       background-color: #e6decf;
       color: #d3272e;
       padding: 2rem;
+      overflow-x: auto;
     }
     h1 {
       text-align: center;
       margin-bottom: 2rem;
     }
-    .status-group {
-      margin-bottom: 3rem;
+
+    .board {
+      display: flex;
+      gap: 2rem;
+      overflow-x: auto;
     }
-    .status-group h2 {
+
+    .status-column {
+      min-width: 300px;
+      background-color: #fdfbf8;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      flex-shrink: 0;
+    }
+
+    .status-column h2 {
       color: #d3272e;
       border-bottom: 2px solid #d3272e;
       padding-bottom: 0.25rem;
+      margin-bottom: 1rem;
     }
+
     .applicant {
       background: white;
       padding: 1rem 1.5rem;
@@ -29,12 +45,15 @@
       border-radius: 12px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
+
     .applicant p {
       margin: 0.5rem 0;
     }
+
     .buttons {
       margin-top: 1rem;
     }
+
     button {
       background-color: #d3272e;
       color: white;
@@ -44,9 +63,11 @@
       cursor: pointer;
       margin-right: 0.5rem;
     }
+
     button.secondary {
       background-color: #888;
     }
+
     .modal {
       display: none;
       position: fixed;
@@ -58,7 +79,10 @@
       border-radius: 12px;
       box-shadow: 0 5px 15px rgba(0,0,0,0.2);
       z-index: 1000;
+      width: 90%;
+      max-width: 500px;
     }
+
     .modal input, .modal textarea {
       width: 100%;
       margin-top: 1rem;
@@ -96,41 +120,43 @@
 <body>
   <h1>👩‍🍳 BagelBoy Applications Dashboard</h1>
 
-  {% for status, applicants in grouped.items() %}
-    <div class="status-group">
-      <h2>{{ status }}</h2>
+  <div class="board">
+    {% for status, applicants in grouped.items() %}
+      <div class="status-column">
+        <h2>{{ status }}</h2>
 
-      {% for sollicitant in applicants %}
-        <div class="applicant">
-          <p><strong>{{ sollicitant['First name'] }} {{ sollicitant['Last name'] }}</strong></p>
-          <p>Email: {{ sollicitant['Email'] }}</p>
-          <p>Phone: {{ sollicitant['Phone'] }}</p>
-          <p>Position: {{ sollicitant['Position'] }}</p>
-          <p>Hours/week: {{ sollicitant['Hours'] }}</p>
-          <p>Weekend availability: {{ sollicitant['Weekend'] }}</p>
-          <p>Motivation: {{ sollicitant['Motivation'] }}</p>
-          <p>Status: {{ sollicitant['Status'] }}</p>
-          {% if sollicitant.event %}
-            <p><strong>🗓 Scheduled meeting:</strong> {{ sollicitant.event }}</p>
-          {% endif %}
-
-          <div class="buttons">
-            {% if status == 'New' %}
-              <a href="/update-status/{{ sollicitant.row_id }}/1st%20meeting"><button>To 1st meeting</button></a>
-            {% elif status == '1st meeting' %}
-              <a href="/update-status/{{ sollicitant.row_id }}/Trial"><button>To Trial</button></a>
-            {% elif status == 'Trial' %}
-              <a href="/update-status/{{ sollicitant.row_id }}/Hired"><button>To Hired</button></a>
+        {% for sollicitant in applicants %}
+          <div class="applicant">
+            <p><strong>{{ sollicitant['First name'] }} {{ sollicitant['Last name'] }}</strong></p>
+            <p>Email: {{ sollicitant['Email'] }}</p>
+            <p>Phone: {{ sollicitant['Phone'] }}</p>
+            <p>Position: {{ sollicitant['Position'] }}</p>
+            <p>Hours/week: {{ sollicitant['Hours'] }}</p>
+            <p>Weekend availability: {{ sollicitant['Weekend'] }}</p>
+            <p>Motivation: {{ sollicitant['Motivation'] }}</p>
+            <p>Status: {{ sollicitant['Status'] }}</p>
+            {% if sollicitant.event %}
+              <p><strong>🗓 Scheduled meeting:</strong> {{ sollicitant.event }}</p>
             {% endif %}
 
-            {% if status != 'Not hired' %}
-              <button class="secondary" onclick="openRejectModal({{ sollicitant.row_id }})">Don't proceed</button>
-            {% endif %}
+            <div class="buttons">
+              {% if status == 'New' %}
+                <a href="/update-status/{{ sollicitant.row_id }}/1st%20meeting"><button>To 1st meeting</button></a>
+              {% elif status == '1st meeting' %}
+                <a href="/update-status/{{ sollicitant.row_id }}/Trial"><button>To Trial</button></a>
+              {% elif status == 'Trial' %}
+                <a href="/update-status/{{ sollicitant.row_id }}/Hired"><button>To Hired</button></a>
+              {% endif %}
+
+              {% if status != 'Not hired' %}
+                <button class="secondary" onclick="openRejectModal({{ sollicitant.row_id }})">Don't proceed</button>
+              {% endif %}
+            </div>
           </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endfor %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
 
   <!-- Reject Modal -->
   <div id="rejectModal" class="modal">
