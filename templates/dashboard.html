@@ -1,171 +1,244 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>BagelBoy Dashboard</title>
-  <style>
-    body {
-      font-family: 'Gotham', sans-serif;
-      background-color: #e6decf;
-      color: #d3272e;
-      padding: 2rem;
-      overflow-x: auto;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+import json
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from urllib.parse import unquote
+from datetime import datetime, timedelta
+from googleapiclient.discovery import build
+import logging
+import pytz
 
-    .board {
-      display: flex;
-      gap: 2rem;
-      overflow-x: auto;
-    }
+logging.basicConfig(level=logging.DEBUG)
 
-    .status-column {
-      min-width: 300px;
-      background-color: #fdfbf8;
-      border-radius: 12px;
-      padding: 1rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      flex-shrink: 0;
-    }
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 
-    .status-column h2 {
-      color: #d3272e;
-      border-bottom: 2px solid #d3272e;
-      padding-bottom: 0.25rem;
-      margin-bottom: 1rem;
-    }
+# Google Sheets + Calendar Setup
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/calendar"
+]
+google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
+client = gspread.authorize(creds)
+sheet = client.open("HR BagelBoy Database").sheet1
+calendar_service = build('calendar', 'v3', credentials=creds)
 
-    .applicant {
-      background: white;
-      padding: 1rem 1.5rem;
-      margin: 1rem 0;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
+# CALENDAR CONFIG
+CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
+JOEP_EMAIL = "joepheusschen@gmail.com"
+BOOKING_LINK = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3KZPV2wRMn1bE31OE67286KHJJnFSxR0ZhJgaDfd7mVIjY-HBLwcUmnTK303Vn7Tpt3thuW1rc"
 
-    .applicant p {
-      margin: 0.5rem 0;
-    }
+@app.route('/')
+def index():
+    return render_template("index.html")
 
-    .buttons {
-      margin-top: 1rem;
-    }
+@app.route('/submit', methods=['POST'])
+def submit():
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    position = request.form.get('position')
+    hours = request.form.get('hours')
+    weekend = request.form.get('weekend')
+    motivation = request.form.get('motivation')
+    age_salary = request.form.get('age_salary')
 
-    button {
-      background-color: #d3272e;
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-right: 0.5rem;
-    }
+    sheet.append_row([
+        first_name, last_name, email, phone, position, hours, weekend, motivation, age_salary, "New"
+    ])
 
-    button.secondary {
-      background-color: #888;
-    }
+    subject = "We received your application – BagelBoy"
+    body = f"""Hi {first_name},\n\nThanks for applying at BagelBoy as a {position} 🥯\n\nWe’ll be in touch with you as soon as possible.\n\nHave a great day,\nBagelBoy HR"""
+    send_email(subject, body, email)
 
-    .modal {
-      display: none;
-      position: fixed;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      z-index: 1000;
-      width: 90%;
-      max-width: 500px;
-    }
+    internal_body = f"New application:\n{first_name} {last_name}, {email}, {phone}, {position}"
+    send_email(f"New application from {first_name} {last_name}", internal_body, os.environ["EMAIL_RECEIVER"])
 
-    .modal input, .modal textarea {
-      width: 100%;
-      margin-top: 1rem;
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-  </style>
-  <script>
-    let currentRowId = null;
-    function openRejectModal(rowId) {
-      currentRowId = rowId;
-      document.getElementById('rejectModal').style.display = 'block';
-    }
-    function closeRejectModal() {
-      document.getElementById('rejectModal').style.display = 'none';
-    }
-    function sendStandardRejection() {
-      window.location.href = `/update-status/${currentRowId}/Not%20hired`;
-    }
-    function sendCustomRejection() {
-      const message = document.getElementById('customMessage').value;
-      fetch(`/reject-custom/${currentRowId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-      }).then(() => {
-        closeRejectModal();
-        window.location.reload();
-      });
-    }
-  </script>
-</head>
-<body>
-  <h1>👩‍🍳 BagelBoy Applications Dashboard</h1>
+    return render_template("thankyou.html")
 
-  <div class="board">
-    {% for status, applicants in grouped.items() %}
-      <div class="status-column">
-        <h2>{{ status }}</h2>
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == os.environ.get("DASHBOARD_PASSWORD"):
+            session['logged_in'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            return render_template('login.html', error='Incorrect password')
+    return render_template('login.html')
 
-        {% for sollicitant in applicants %}
-          <div class="applicant">
-            <p><strong>{{ sollicitant['First name'] }} {{ sollicitant['Last name'] }}</strong></p>
-            <p>Email: {{ sollicitant['Email'] }}</p>
-            <p>Phone: {{ sollicitant['Phone'] }}</p>
-            <p>Position: {{ sollicitant['Position'] }}</p>
-            <p>Hours/week: {{ sollicitant['Hours'] }}</p>
-            <p>Weekend availability: {{ sollicitant['Weekend'] }}</p>
-            <p>Motivation: {{ sollicitant['Motivation'] }}</p>
-            <p>Status: {{ sollicitant['Status'] }}</p>
-            {% if sollicitant.event %}
-              <p><strong>🗓 Scheduled meeting:</strong> {{ sollicitant.event }}</p>
-            {% endif %}
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
 
-            <div class="buttons">
-              {% if status == 'New' %}
-                <a href="/update-status/{{ sollicitant.row_id }}/1st%20meeting"><button>To 1st meeting</button></a>
-              {% elif status == '1st meeting' %}
-                <a href="/update-status/{{ sollicitant.row_id }}/Trial"><button>To Trial</button></a>
-              {% elif status == 'Trial' %}
-                <a href="/update-status/{{ sollicitant.row_id }}/Hired"><button>To Hired</button></a>
-              {% endif %}
+@app.route('/dashboard')
+def dashboard():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
 
-              {% if status != 'Not hired' %}
-                <button class="secondary" onclick="openRejectModal({{ sollicitant.row_id }})">Don't proceed</button>
-              {% endif %}
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% endfor %}
-  </div>
+    rows = sheet.get_all_records()
+    grouped = {"New": [], "1st meeting": [], "Trial": [], "Hired": [], "Not hired": [], "Other": []}
 
-  <!-- Reject Modal -->
-  <div id="rejectModal" class="modal">
-    <h3>Reject applicant</h3>
-    <p>You can send the standard message or enter a custom one below.</p>
-    <textarea id="customMessage" placeholder="Custom message..."></textarea>
-    <button onclick="sendStandardRejection()">Send standard mail</button>
-    <button onclick="sendCustomRejection()">Send custom mail</button>
-    <button class="secondary" onclick="closeRejectModal()">Cancel</button>
-  </div>
-</body>
-</html>
+    for i, row in enumerate(rows):
+        row_with_id = dict(row)
+        row_with_id["row_id"] = i + 2
+        status = row.get("Status")
+        if status in grouped:
+            grouped[status].append(row_with_id)
+        else:
+            grouped["Other"].append(row_with_id)
+
+    return render_template("dashboard.html", grouped=grouped)
+
+@app.route('/update-status/<int:row_id>/<new_status>')
+def update_status(row_id, new_status):
+    new_status = unquote(new_status)
+    sheet.update_cell(row_id, 10, new_status)
+
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+    last_name = row[1]
+
+    if new_status == "1st meeting":
+        subject = "Invitation first meeting – BagelBoy"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a short intake meeting.\n\nPlease choose a time that suits you via the link below:\n\n{BOOKING_LINK}\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    elif new_status == "Trial":
+        subject = "Invitation trial shift – BagelBoy"
+        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease choose a time that suits you via the link below:\n\n{BOOKING_LINK}\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    elif new_status == "Hired":
+        subject = "Welcome to BagelBoy – Start info & forms"
+        body = f"""Hi {first_name},\n\nWelcome to the BagelBoy team 🎉 We're happy to have you on board!\n\nAttached you will find two important documents:\n1. House Rules – Please read carefully and sign\n2. New Employee Form – Please fill in all fields and send it back\n\n✅ Please return both signed/completed as soon as possible to joepheusschen@gmail.com\n\nLet us know if you have any questions. See you soon!\n\nBagelBoy HR"""
+        attachments = [
+            os.path.join("attachments", "House Rules BagelBoy.pdf"),
+            os.path.join("attachments", "Nieuwe werknemer _ New employee.xlsx")
+        ]
+        send_email(subject, body, email, attachments)
+
+    elif new_status == "Not hired":
+        subject = "BagelBoy application update"
+        body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\n\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+        send_email(subject, body, email)
+
+    return redirect(url_for('dashboard'))
+
+@app.route('/schedule/<int:row_id>', methods=['GET', 'POST'])
+def schedule(row_id):
+    if request.method == 'GET':
+        row = sheet.row_values(row_id)
+        if not row:
+            return "Invalid row ID", 404
+        return render_template("schedule.html", row_id=row_id, first_name=row[0], last_name=row[1], email=row[2])
+
+    if request.method == 'POST':
+        date_str = request.form.get('date')
+        time_str = request.form.get('time')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        email = request.form.get('email')
+
+        if not all([date_str, time_str, first_name, last_name, email]):
+            return "Missing data", 400
+
+        try:
+            tz = pytz.timezone("Europe/Amsterdam")
+            naive_start = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            start_dt = tz.localize(naive_start)
+            end_dt = start_dt + timedelta(minutes=15)
+        except Exception:
+            logging.exception("Failed to parse or localize datetime")
+            return "Invalid date/time format", 400
+
+        event = {
+            'summary': f"Intake {first_name} {last_name}",
+            'start': {
+                'dateTime': start_dt.isoformat(),
+                'timeZone': 'Europe/Amsterdam',
+            },
+            'end': {
+                'dateTime': end_dt.isoformat(),
+                'timeZone': 'Europe/Amsterdam',
+            },
+            'attendees': [
+                {'email': email},
+                {'email': JOEP_EMAIL}
+            ],
+            'reminders': {
+                'useDefault': True
+            }
+        }
+
+        try:
+            response = calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+        except Exception as e:
+            logging.exception("Failed to insert calendar event")
+            return "Internal Server Error: Failed to insert calendar event", 500
+
+        return render_template("thankyou.html")
+
+@app.route('/reject/<int:row_id>')
+def reject(row_id):
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+
+    sheet.update_cell(row_id, 10, "Not hired")
+
+    subject = "BagelBoy application update"
+    body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\n\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
+    send_email(subject, body, email)
+
+    return redirect(url_for('dashboard'))
+
+@app.route('/reject-custom/<int:row_id>', methods=['POST'])
+def reject_custom(row_id):
+    data = request.get_json()
+    message = data.get('message')
+    row = sheet.row_values(row_id)
+    email = row[2]
+    first_name = row[0]
+
+    sheet.update_cell(row_id, 10, "Not hired")
+
+    subject = "BagelBoy application update"
+    body = f"Hi {first_name},\n\n{message}\n\nBagelBoy HR"
+    send_email(subject, body, email)
+
+    return jsonify({'status': 'ok'})
+
+def send_email(subject, body, to, attachments=None):
+    msg = MIMEMultipart()
+    msg["Subject"] = subject
+    msg["From"] = os.environ["EMAIL_SENDER"]
+    msg["To"] = to
+
+    msg.attach(MIMEText(body, "plain"))
+
+    if attachments:
+        for path in attachments:
+            try:
+                with open(path, "rb") as f:
+                    part = MIMEApplication(f.read(), Name=os.path.basename(path))
+                    part['Content-Disposition'] = f'attachment; filename="{os.path.basename(path)}"'
+                    msg.attach(part)
+            except Exception as e:
+                logging.exception(f"Failed to attach file: {path}")
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
+        server.send_message(msg)
+
+if __name__ == '__main__':
+    app.run(debug=True)
