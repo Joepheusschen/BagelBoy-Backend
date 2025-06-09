@@ -31,7 +31,7 @@ sheet = client.open("HR BagelBoy Database").sheet1
 contract_sheet = client.open("BagelBoy Contract Information").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
 
-# CALENDAR CONFIG
+# CONFIG
 CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
 JOEP_EMAIL = "joepheusschen@gmail.com"
 BOOKING_LINK = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3KZPV2wRMn1bE31OE67286KHJJnFSxR0ZhJgaDfd7mVIjY-HBLwcUmnTK303Vn7Tpt3thuW1rc"
@@ -86,7 +86,15 @@ def dashboard():
         return redirect(url_for('login'))
 
     rows = sheet.get_all_records()
-    grouped = {"New": [], "1st meeting": [], "Trial": [], "Hired": [], "Not hired": [], "Other": []}
+    grouped = {
+        "New": [],
+        "1st meeting": [],
+        "Trial": [],
+        "Hired": [],
+        "Form received": [],
+        "Not hired": [],
+        "Other": []
+    }
 
     for i, row in enumerate(rows):
         row_with_id = dict(row)
@@ -155,7 +163,9 @@ def contract_form(row_id):
             request.form.get('employment_date'),
             request.form.get('position'),
             request.form.get('start_date'),
-            request.form.get('tax_credit')
+            request.form.get('tax_credit'),
+            "0",  # Contractual hours
+            ""    # Salary per hour (later toegevoegd)
         ]
         contract_sheet.append_row(values)
         sheet.update_cell(row_id, 10, "Form received")
@@ -208,7 +218,7 @@ def schedule(row_id):
         }
 
         try:
-            response = calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
+            calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
         except Exception as e:
             logging.exception("Failed to insert calendar event")
             return "Internal Server Error: Failed to insert calendar event", 500
