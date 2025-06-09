@@ -1,1 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BagelBoy Contract Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f6f1;
+      color: #333;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      color: #d3272e;
+    }
+    form {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, select {
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #d3272e;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>BagelBoy – Personal Details</h1>
+  <form method="post">
+    <input name="email" placeholder="Email" required>
+    <input name="last_name" placeholder="Last Name" required>
+    <input name="first_name" placeholder="First Name / Initials" required>
+    <input name="address" placeholder="Address" required>
+    <input name="zipcode" placeholder="Zip Code" required>
+    <input name="city" placeholder="City" required>
+    <input name="dob" placeholder="Date of Birth (dd-mm-yyyy)" required>
+    <input name="marital_status" placeholder="Marital Status" required>
+    <input name="gender" placeholder="Gender" required>
+    <input name="id_type" placeholder="Type of ID (passport/ID)" required>
+    <input name="id_number" placeholder="ID Number" required>
+    <input name="nationality" placeholder="Nationality" required>
+    <input name="bsn" placeholder="BSN / Social Security Number" required>
+    <input name="bank" placeholder="Bank or Giro Account Number" required>
+    <input name="employment_date" placeholder="Date of Employment (dd-mm-yyyy)" required>
+    <input name="position" placeholder="Job Title / Position" required>
+    <input name="start_date" placeholder="Start Date of Duties (dd-mm-yyyy)" required>
+    <select name="tax_credit" required>
+      <option value="">Entitled to Tax Credit?</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
+    <button type="submit">Send</button>
+  </form>
+</body>
+</html>
 
