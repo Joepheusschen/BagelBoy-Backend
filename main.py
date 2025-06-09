@@ -110,16 +110,17 @@ def update_status(row_id, new_status):
         body = f"""Hi {first_name},\n\nWe would love to invite you for a short meeting.\n\nYou can schedule your intake at 9 or 11 any day.\n\nPlease plan your intake here:\n{link}\n\nBagelBoy HR"""
         send_email(subject, body, email)
 
-    elif new_status == "Trial":
-        subject = "Invitation trial shift – BagelBoy"
-        link = f"https://bagel-boy-backend.vercel.app/schedule/{row_id}"
-        body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nYou can schedule your intake at 9 or 11 any day.\n\nPlease plan your trial here:\n{link}\n\nBagelBoy HR"""
-        send_email(subject, body, email)
+   if new_status == "1st meeting":
+    subject = "Invitation first meeting – BagelBoy"
+    booking_link = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3KZPV2wRMn1bE31OE67286KHJJnFSxR0ZhJgaDfd7mVIjY-HBLwcUmnTK303Vn7Tpt3thuW1rc"
+    body = f"""Hi {first_name},\n\nWe would love to invite you for a short intake meeting.\n\nPlease choose a time that suits you via the link below:\n\n{booking_link}\n\nBagelBoy HR"""
+    send_email(subject, body, email)
 
-    elif new_status == "Not hired":
-        subject = "BagelBoy application update"
-        body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\n\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
-        send_email(subject, body, email)
+elif new_status == "Trial":
+    subject = "Invitation trial shift – BagelBoy"
+    booking_link = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3KZPV2wRMn1bE31OE67286KHJJnFSxR0ZhJgaDfd7mVIjY-HBLwcUmnTK303Vn7Tpt3thuW1rc"
+    body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease choose a time that suits you via the link below:\n\n{booking_link}\n\nBagelBoy HR"""
+    send_email(subject, body, email)
 
     return redirect(url_for('dashboard'))
 
