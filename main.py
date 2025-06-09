@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 import logging
 import pytz
+from weasyprint import HTML
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -275,6 +277,31 @@ def send_email(subject, body, to, attachments=None):
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
         server.send_message(msg)
+
+@app.route('/generate-contract/<int:row_id>')
+def generate_contract(row_id):
+    values = contract_sheet.get_all_records()
+    email = sheet.row_values(row_id)[2]
+    person_data = next((v for v in values if v['Email'] == email), None)
+
+    if not person_data:
+        return "No contract data found", 404
+
+    html = render_template("contract_template.html", **person_data)
+    pdf = HTML(string=html).write_pdf()
+
+    pdf_path = f"/tmp/contract_{row_id}.pdf"
+    with open(pdf_path, "wb") as f:
+        f.write(pdf)
+
+    subject = "Your BagelBoy Contract 📄"
+    body = "Attached you will find your contract. Please read it carefully. Let us know if you have any questions."
+    
+    send_email(subject, body, email, attachments=[pdf_path])
+    send_email("Contract sent", f"Contract for {person_data['First Name / Initials']} sent.", JOEP_EMAIL, attachments=[pdf_path])
+
+    return redirect(url_for('dashboard'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
