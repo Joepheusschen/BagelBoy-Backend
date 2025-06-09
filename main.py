@@ -49,9 +49,10 @@ def submit():
     hours = request.form.get('hours')
     weekend = request.form.get('weekend')
     motivation = request.form.get('motivation')
+    age_salary = request.form.get('age_salary')
 
     sheet.append_row([
-        first_name, last_name, email, phone, position, hours, weekend, motivation, "New"
+        first_name, last_name, email, phone, position, hours, weekend, motivation, age_salary, "New"
     ])
 
     subject = "We received your application – BagelBoy"
@@ -100,7 +101,7 @@ def dashboard():
 @app.route('/update-status/<int:row_id>/<new_status>')
 def update_status(row_id, new_status):
     new_status = unquote(new_status)
-    sheet.update_cell(row_id, 9, new_status)
+    sheet.update_cell(row_id, 10, new_status)
 
     row = sheet.row_values(row_id)
     email = row[2]
@@ -180,13 +181,9 @@ def schedule(row_id):
         }
 
         try:
-            print("Creating event in calendar:", CALENDAR_ID)
-            print("Event data:", event)
             response = calendar_service.events().insert(calendarId=CALENDAR_ID, body=event, sendUpdates='all').execute()
-            print("Event created:", response.get('htmlLink'))
         except Exception as e:
             logging.exception("Failed to insert calendar event")
-            print("Exception message:", str(e))
             return "Internal Server Error: Failed to insert calendar event", 500
 
         return render_template("thankyou.html")
@@ -197,7 +194,7 @@ def reject(row_id):
     email = row[2]
     first_name = row[0]
 
-    sheet.update_cell(row_id, 9, "Not hired")
+    sheet.update_cell(row_id, 10, "Not hired")
 
     subject = "BagelBoy application update"
     body = f"""Hi {first_name},\n\nUnfortunately we have to let you know we have decided not to proceed with your application.\n\nWe thank you for your time and effort and wish you all of luck in your future endeavors.\n\nWould you wish to have more information on this decision please contact Joep on 0681142820.\n\nBagelBoy HR"""
@@ -213,7 +210,7 @@ def reject_custom(row_id):
     email = row[2]
     first_name = row[0]
 
-    sheet.update_cell(row_id, 9, "Not hired")
+    sheet.update_cell(row_id, 10, "Not hired")
 
     subject = "BagelBoy application update"
     body = f"Hi {first_name},\n\n{message}\n\nBagelBoy HR"
