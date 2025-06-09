@@ -2,6 +2,8 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 import os
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -31,6 +33,7 @@ calendar_service = build('calendar', 'v3', credentials=creds)
 # CALENDAR CONFIG
 CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
 JOEP_EMAIL = "joepheusschen@gmail.com"
+BOOKING_LINK = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3KZPV2wRMn1bE31OE67286KHJJnFSxR0ZhJgaDfd7mVIjY-HBLwcUmnTK303Vn7Tpt3thuW1rc"
 
 @app.route('/')
 def index():
@@ -113,6 +116,15 @@ def update_status(row_id, new_status):
         subject = "Invitation trial shift – BagelBoy"
         body = f"""Hi {first_name},\n\nWe would love to invite you for a trial shift!\n\nPlease choose a time that suits you via the link below:\n\n{BOOKING_LINK}\n\nBagelBoy HR"""
         send_email(subject, body, email)
+
+    elif new_status == "Hired":
+        subject = "Welcome to BagelBoy – Start info & forms"
+        body = f"""Hi {first_name},\n\nWelcome to the BagelBoy team 🎉 We're happy to have you on board!\n\nAttached you will find two important documents:\n1. House Rules – Please read carefully and sign\n2. New Employee Form – Please fill in all fields and send it back\n\n✅ Please return both signed/completed as soon as possible to joepheusschen@gmail.com\n\nLet us know if you have any questions. See you soon!\n\nBagelBoy HR"""
+        attachments = [
+            os.path.join("attachments", "House Rules BagelBoy.pdf"),
+            os.path.join("attachments", "Nieuwe werknemer _ New employee.xlsx")
+        ]
+        send_email(subject, body, email, attachments)
 
     elif new_status == "Not hired":
         subject = "BagelBoy application update"
@@ -209,11 +221,23 @@ def reject_custom(row_id):
 
     return jsonify({'status': 'ok'})
 
-def send_email(subject, body, to):
-    msg = MIMEText(body)
+def send_email(subject, body, to, attachments=None):
+    msg = MIMEMultipart()
     msg["Subject"] = subject
     msg["From"] = os.environ["EMAIL_SENDER"]
     msg["To"] = to
+
+    msg.attach(MIMEText(body, "plain"))
+
+    if attachments:
+        for path in attachments:
+            try:
+                with open(path, "rb") as f:
+                    part = MIMEApplication(f.read(), Name=os.path.basename(path))
+                    part['Content-Disposition'] = f'attachment; filename="{os.path.basename(path)}"'
+                    msg.attach(part)
+            except Exception as e:
+                logging.exception(f"Failed to attach file: {path}")
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(os.environ["EMAIL_SENDER"], os.environ["EMAIL_PASSWORD"])
