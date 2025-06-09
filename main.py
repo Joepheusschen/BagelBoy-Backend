@@ -28,6 +28,7 @@ google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
+contract_sheet = client.open("BagelBoy Contract Information").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 # CALENDAR CONFIG
@@ -119,13 +120,9 @@ def update_status(row_id, new_status):
         send_email(subject, body, email)
 
     elif new_status == "Hired":
-        subject = "Welcome to BagelBoy – Start info & forms"
-        body = f"""Hi {first_name},\n\nWelcome to the BagelBoy team 🎉 We're happy to have you on board!\n\nAttached you will find two important documents:\n1. House Rules – Please read carefully and sign\n2. New Employee Form – Please fill in all fields and send it back\n\n✅ Please return both signed/completed as soon as possible to joepheusschen@gmail.com\n\nLet us know if you have any questions. See you soon!\n\nBagelBoy HR"""
-        attachments = [
-            os.path.join("attachments", "House Rules BagelBoy.pdf"),
-            os.path.join("attachments", "Nieuwe werknemer _ New employee.xlsx")
-        ]
-        send_email(subject, body, email, attachments)
+        subject = "Welcome to BagelBoy – Please fill in your details"
+        body = f"""Hi {first_name},\n\nWelcome to the BagelBoy team 🎉\n\nPlease fill in your personal details via the link below:\nhttps://bagel-boy-backend.vercel.app/contract-form/{row_id}\n\nLet us know if you have any questions!\n\nBagelBoy HR"""
+        send_email(subject, body, email)
 
     elif new_status == "Not hired":
         subject = "BagelBoy application update"
@@ -133,6 +130,36 @@ def update_status(row_id, new_status):
         send_email(subject, body, email)
 
     return redirect(url_for('dashboard'))
+
+@app.route('/contract-form/<int:row_id>', methods=['GET', 'POST'])
+def contract_form(row_id):
+    if request.method == 'GET':
+        return render_template("contract_form.html")
+
+    if request.method == 'POST':
+        values = [
+            request.form.get('email'),
+            request.form.get('last_name'),
+            request.form.get('first_name'),
+            request.form.get('address'),
+            request.form.get('zipcode'),
+            request.form.get('city'),
+            request.form.get('dob'),
+            request.form.get('marital_status'),
+            request.form.get('gender'),
+            request.form.get('id_type'),
+            request.form.get('id_number'),
+            request.form.get('nationality'),
+            request.form.get('bsn'),
+            request.form.get('bank'),
+            request.form.get('employment_date'),
+            request.form.get('position'),
+            request.form.get('start_date'),
+            request.form.get('tax_credit')
+        ]
+        contract_sheet.append_row(values)
+        sheet.update_cell(row_id, 10, "Form received")
+        return render_template("thankyou.html")
 
 @app.route('/schedule/<int:row_id>', methods=['GET', 'POST'])
 def schedule(row_id):
@@ -223,7 +250,6 @@ def send_email(subject, body, to, attachments=None):
     msg["Subject"] = subject
     msg["From"] = os.environ["EMAIL_SENDER"]
     msg["To"] = to
-
     msg.attach(MIMEText(body, "plain"))
 
     if attachments:
