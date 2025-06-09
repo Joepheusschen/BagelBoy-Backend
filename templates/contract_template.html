@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 2cm;
+    }
+
+    h1 {
+      text-align: center;
+      color: #d3272e;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Employment Contract</h1>
+
+  <div class="section">
+    <p><span class="label">Name:</span> {{ first_name }} {{ last_name }}</p>
+    <p><span class="label">Address:</span> {{ address }}, {{ zipcode }} {{ city }}</p>
+    <p><span class="label">Date of Birth:</span> {{ dob }}</p>
+    <p><span class="label">Nationality:</span> {{ nationality }}</p>
+    <p><span class="label">BSN:</span> {{ bsn }}</p>
+    <p><span class="label">IBAN:</span> {{ bank }}</p>
+  </div>
+
+  <div class="section">
+    <p><span class="label">Position:</span> {{ position }}</p>
+    <p><span class="label">Start Date:</span> {{ start_date }}</p>
+    <p><span class="label">Contract Hours:</span> {{ hours }}</p>
+    <p><span class="label">Salary per Hour:</span> €{{ salary }}</p>
+    <p><span class="label">Tax Credit:</span> {{ tax_credit }}</p>
+  </div>
+
+  <div class="section">
+    <p>This contract is valid for one year unless terminated earlier. All Dutch labor laws apply.</p>
+  </div>
+
+  <p>Signed,</p>
+  <p><em>BagelBoy</em></p>
+</body>
+</html>
