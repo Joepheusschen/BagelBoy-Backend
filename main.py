@@ -26,17 +26,25 @@ scope = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/calendar"
 ]
-try:
-    # Probeer dubbele decoding (Render escape string)
-    google_creds = json.loads(json.loads(os.environ["GOOGLE_CREDENTIALS"]))
-except json.JSONDecodeError:
-    # Val terug op enkele decoding (zoals je voorheen had)
-    google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+raw_creds = os.environ["GOOGLE_CREDENTIALS"]
+
+# Zorg dat google_creds altijd een dict is
+if isinstance(raw_creds, dict):
+    google_creds = raw_creds
+else:
+    try:
+        # Dubbel ge-escape'te JSON (zoals op Render vaak)
+        google_creds = json.loads(json.loads(raw_creds))
+    except json.JSONDecodeError:
+        # Enkel ge-escape'te JSON (zoals lokaal of oude services)
+        google_creds = json.loads(raw_creds)
+
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
 contract_sheet = client.open("BagelBoy Contract Information").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
+
 
 # CONFIG
 CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
