@@ -11,3 +11,4 @@ gunicorn
 google-api-python-client
 python-dotenv
 pytz
+weasyprint==60.2
