@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 import logging
 import pytz
-from weasyprint import HTML
+#from weasyprint import HTML
 
 
 logging.basicConfig(level=logging.DEBUG)
