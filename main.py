@@ -28,16 +28,13 @@ scope = [
 ]
 raw_creds = os.environ["GOOGLE_CREDENTIALS"]
 
-# Zorg dat google_creds altijd een dict is
-if isinstance(raw_creds, dict):
-    google_creds = raw_creds
-else:
-    try:
-        # Dubbel ge-escape'te JSON (zoals op Render vaak)
-        google_creds = json.loads(json.loads(raw_creds))
-    except json.JSONDecodeError:
-        # Enkel ge-escape'te JSON (zoals lokaal of oude services)
-        google_creds = json.loads(raw_creds)
+# Zorg dat google_creds altijd een dict is, ongeacht hoe het is opgeslagen
+try:
+    google_creds = json.loads(raw_creds)
+    if isinstance(google_creds, str):
+        google_creds = json.loads(google_creds)  # dubbel geescaped
+except Exception as e:
+    raise RuntimeError("Failed to parse GOOGLE_CREDENTIALS") from e
 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
