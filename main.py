@@ -80,7 +80,7 @@ def submit():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if request.form.get('password') == os.environ.get("DASHBOARD_PASSWORD"):
+        if request.form.get('password') == os.environ.get("DASHBOARD_PASS"):
             session['logged_in'] = True
             return redirect(url_for('dashboard'))
         else:
