@@ -15,8 +15,9 @@ WORKDIR /app
 COPY . /app
 
 # Installeer Python-dependencies
-RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements.txt
+RUN python3 -m venv venv
+ENV PATH="/app/venv/bin:$PATH"
+RUN pip install -r requirements.txt
 
 # Start de app met gunicorn
 CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "main:app"]
