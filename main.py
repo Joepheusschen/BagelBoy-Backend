@@ -26,7 +26,12 @@ scope = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/calendar"
 ]
-google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+try:
+    # Probeer dubbele decoding (Render escape string)
+    google_creds = json.loads(json.loads(os.environ["GOOGLE_CREDENTIALS"]))
+except json.JSONDecodeError:
+    # Val terug op enkele decoding (zoals je voorheen had)
+    google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
