@@ -12,8 +12,6 @@ from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 import logging
 import pytz
-from weasyprint import HTML
-
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -28,7 +26,6 @@ scope = [
 ]
 raw_creds = os.environ["GOOGLE_CREDENTIALS"]
 
-# Zorg dat google_creds altijd een dict is, ongeacht hoe het is opgeslagen
 try:
     google_creds = json.loads(raw_creds)
     if isinstance(google_creds, str):
@@ -41,7 +38,6 @@ client = gspread.authorize(creds)
 sheet = client.open("HR BagelBoy Database").sheet1
 contract_sheet = client.open("BagelBoy Contract Information").sheet1
 calendar_service = build('calendar', 'v3', credentials=creds)
-
 
 # CONFIG
 CALENDAR_ID = "f50e90776a5e78db486c71757d236abbbda060c246c4fefa593c3b564066d961@group.calendar.google.com"
@@ -176,8 +172,8 @@ def contract_form(row_id):
             request.form.get('position'),
             request.form.get('start_date'),
             request.form.get('tax_credit'),
-            "0",  # Contractual hours
-            ""    # Salary per hour (later toegevoegd)
+            "0",
+            ""
         ]
         contract_sheet.append_row(values)
         sheet.update_cell(row_id, 10, "Form received")
@@ -289,7 +285,6 @@ def send_email(subject, body, to, attachments=None):
         server.send_message(msg)
 
     return redirect(url_for('dashboard'))
-
 
 if __name__ == '__main__':
     app.run(debug=True)
